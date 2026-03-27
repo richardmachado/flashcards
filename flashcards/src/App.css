@@ -1,0 +1,199 @@
+.App {
+  text-align: center;
+}
+
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.study-card-wrapper {
+   display: flex;
+  justify-content: center;
+  align-items: center;
+  perspective: 1200px;
+  min-height: 260px;
+}
+
+.study-card {
+  position: relative;
+  width: 360px;
+  max-width: 100%;
+  height: 220px;
+  transform-style: preserve-3d;
+  transition: transform 0.45s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+/* Flip state (keep this) */
+.study-card.flip {
+  transform: rotateY(180deg);
+}
+
+/* New: card comes in with a small slide + wobble */
+.study-card.slide-in {
+  animation: cardSlideIn 260ms ease-out;
+}
+
+@keyframes cardSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(16px) rotateZ(2deg);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(0) rotateZ(-1.5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) rotateZ(0deg);
+  }
+}
+
+
+
+.study-card-face {
+  position: absolute;
+  inset: 0;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+}
+
+.study-card-front {
+  background: #fefce8;
+}
+
+.study-card-back {
+  background: #ecfeff;
+  transform: rotateY(180deg);
+}
+
+.study-card-wrapper {
+  perspective: 1000px;
+}
+
+.study-card {
+  position: relative;
+  width: 100%;
+  min-height: 120px;
+  transform-style: preserve-3d;
+  transition: transform 0.4s ease;
+}
+
+/* Flip */
+.study-card.flip {
+  transform: rotateY(180deg);
+}
+
+.study-card-face {
+  position: absolute;
+  inset: 0;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+}
+
+.study-card-front {
+  background: #fefce8;
+}
+
+.study-card-back {
+  background: #ecfeff;
+  transform: rotateY(180deg);
+}
+
+
+
+
+
+@keyframes slideLeft {
+  from {
+    transform: translateX(-12px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideRight {
+  from {
+    transform: translateX(12px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+-front {
+  transform: rotateY(0deg);
+}
+
+.study-card-back {
+  transform: rotateY(180deg);
+}
+
+/* Optional subtle accent bar at top */
+.study-card-face::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: 18px;
+  right: 18px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #a855f7);
+  opacity: 0.7;
+}
+
+/* Text tweaks */
+.study-card-face-header {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.study-card-face-body {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #111827;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* Hover lift */
+.study-card:hover {
+  box-shadow:
+    0 18px 40px rgba(15, 23, 42, 0.28),
+    0 6px 20px rgba(15, 23, 42, 0.18);
+}
+
+
+
