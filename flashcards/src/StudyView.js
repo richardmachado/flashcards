@@ -16,6 +16,7 @@ function StudyView({
   onFlip,
   onStartStudy,
   onShuffle,
+  onUnshuffle,  
   currentCard,
 }) {
   return (
@@ -96,34 +97,34 @@ function StudyView({
             >
               ⟩
             </button>
+            
           </div>
 
-          <div className="study-controls">
-            <button
-              type="button"
-              className={
-                "btn btn-small " +
-                (isShuffled ? "btn-primary" : "btn-ghost")
-              }
-              onClick={onShuffle}
-            >
-              Shuffle
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary btn-small"
-              onClick={onFlip}
-            >
-              {showBack ? "Show front" : "Show back"}
-            </button>
-            <button
-              type="button"
-              className="btn btn-gray btn-small study-restart"
-              onClick={onStartStudy}
-            >
-              Restart
-            </button>
-          </div>
+        <div className="study-controls">
+    <button
+      type="button"
+      className={
+        "btn btn-small " + (isShuffled ? "btn-primary" : "btn-ghost")
+      }
+      onClick={isShuffled ? onUnshuffle : onShuffle}
+    >
+      {isShuffled ? "Shuffle On" : "Shuffle Off"}
+    </button>
+    <button
+      type="button"
+      className="btn btn-primary btn-small"
+      onClick={onFlip}
+    >
+      {showBack ? "Show front" : "Show back"}
+    </button>
+    <button
+      type="button"
+      className="btn btn-gray btn-small study-restart"
+      onClick={onStartStudy}
+    >
+      Restart
+    </button>
+  </div>
         </>
       )}
     </div>

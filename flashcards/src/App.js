@@ -259,6 +259,23 @@ function App() {
     (card) => !selectedDeckId || card.deck_id === selectedDeckId
   );
 
+  useEffect(() => {
+  if (studyCards.length === 0) {
+    setStudyIndex(0);
+    setShowBack(false);
+    setTransitionDir("none");
+    return;
+  }
+
+  if (studyIndex >= studyCards.length) {
+    // if you were on 5 of 10 and new deck has 3 cards, go to first
+    setStudyIndex(0);
+    setShowBack(false);
+    setTransitionDir("none");
+  }
+}, [studyCards.length, selectedDeckId, studyIndex]); // run whenever deck or deck size changes
+
+
   function startStudy() {
     if (studyCards.length === 0) return;
     setStudyIndex(0);
@@ -274,6 +291,26 @@ function App() {
     setShuffledIndices(indices);
     setIsShuffled(true);
     setStudyIndex(0);
+    setShowBack(false);
+    setTransitionDir("none");
+  }
+
+  // NEW: unshuffle while keeping current card
+  function stopShuffle() {
+    if (!isShuffled || studyCards.length === 0) {
+      setIsShuffled(false);
+      setShuffledIndices([]);
+      return;
+    }
+
+    const currentIndex =
+      shuffledIndices.length === studyCards.length
+        ? shuffledIndices[studyIndex]
+        : studyIndex;
+
+    setIsShuffled(false);
+    setShuffledIndices([]);
+    setStudyIndex(currentIndex);
     setShowBack(false);
     setTransitionDir("none");
   }
@@ -309,13 +346,13 @@ function App() {
 
   const anySelected = aiGeneratedCards.some((c) => c.selected);
 
-// derive the index into studyCards based on shuffle
-const currentIndex =
-  isShuffled && shuffledIndices.length === studyCards.length
-    ? shuffledIndices[studyIndex]
-    : studyIndex;
+  // derive the index into studyCards based on shuffle
+  const currentIndex =
+    isShuffled && shuffledIndices.length === studyCards.length
+      ? shuffledIndices[studyIndex]
+      : studyIndex;
 
-const currentCard = studyCards[currentIndex];
+  const currentCard = studyCards[currentIndex];
 
   return (
     <div className="app-root">
@@ -404,23 +441,24 @@ const currentCard = studyCards[currentIndex];
           )}
 
           {view === "study" && (
-          <StudyView
-  decks={decks}
-  selectedDeckId={selectedDeckId}
-  setSelectedDeckId={setSelectedDeckId}
-  studyCards={studyCards}
-  studyIndex={studyIndex}
-  currentIndex={currentIndex}   // <-- add this
-  showBack={showBack}
-  transitionDir={transitionDir}
-  isShuffled={isShuffled}
-  onPrev={prevCard}
-  onNext={nextCard}
-  onFlip={flipCard}
-  onStartStudy={startStudy}
-  onShuffle={startShuffle}
-  currentCard={currentCard}
-/>
+            <StudyView
+              decks={decks}
+              selectedDeckId={selectedDeckId}
+              setSelectedDeckId={setSelectedDeckId}
+              studyCards={studyCards}
+              studyIndex={studyIndex}
+              currentIndex={currentIndex}
+              showBack={showBack}
+              transitionDir={transitionDir}
+              isShuffled={isShuffled}
+              onPrev={prevCard}
+              onNext={nextCard}
+              onFlip={flipCard}
+              onStartStudy={startStudy}
+              onShuffle={startShuffle}
+              onUnshuffle={stopShuffle}
+              currentCard={currentCard}
+            />
           )}
         </>
       )}
