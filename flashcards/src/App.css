@@ -1,38 +1,288 @@
-.App {
-  text-align: center;
+/* Global layout */
+.app-root {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: system-ui, sans-serif;
 }
 
+.app-title {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.app-header {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.view-toggle {
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 8px;
+}
+
+/* Shared card block */
+.card-block {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.card-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.card-block-title {
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+/* Section titles */
+.section-title {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-subtitle {
+  font-size: 1rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Forms */
+.form {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+  gap: 0.75rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5rem;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.form-field textarea {
+  resize: vertical;
+}
+
+.form-field-inline {
+  max-width: 300px;
+  margin-bottom: 0.75rem;
+}
+
+/* Buttons */
+.btn {
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+  transition: opacity 100ms ease, filter 100ms ease;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.btn-primary {
+  background: #2563eb;
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.btn-success {
+  background: #16a34a;
+  color: white;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.btn-danger {
+  background: #dc2626;
+  color: white;
 }
 
+.btn-gray {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-ghost {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.btn-small {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.btn-tiny {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+/* Auth card */
+.auth-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.auth-mode-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+/* Text helpers */
+.error-text {
+  color: #dc2626;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.muted-text {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* Card list (manage view) */
+.cards-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.card-item {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: #f9fafb;
+}
+
+.card-item-front {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.card-item-back {
+  color: #4b5563;
+  margin-bottom: 8px;
+}
+
+.card-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-item-deck {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.card-item-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.card-item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 0.5rem;
+}
+
+/* AI generated cards */
+.generated-grid {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.generated-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 0.5rem;
+  background: #f3f4f6;
+  opacity: 0.6;
+  transition: opacity 120ms ease;
+}
+
+.generated-card-selected {
+  background: #f9fafb;
+  opacity: 1;
+}
+
+.generated-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.generated-card-index {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.generated-card-toggle {
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.generated-card-front {
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 0.95rem;
+}
+
+.generated-card-back {
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+/* Study card */
 .study-card-wrapper {
-   display: flex;
+  display: flex;
   justify-content: center;
   align-items: center;
-  perspective: 1200px;
-  min-height: 260px;
+  gap: 12px;
+  height: 260px;
+  margin-bottom: 0.75rem;
 }
 
 .study-card {
@@ -43,14 +293,13 @@
   transform-style: preserve-3d;
   transition: transform 0.45s ease, box-shadow 0.2s ease;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
-/* Flip state (keep this) */
 .study-card.flip {
   transform: rotateY(180deg);
 }
 
-/* New: card comes in with a small slide + wobble */
 .study-card.slide-in {
   animation: cardSlideIn 260ms ease-out;
 }
@@ -70,95 +319,31 @@
   }
 }
 
-
-
 .study-card-face {
   position: absolute;
   inset: 0;
-  padding: 1rem;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 18px 22px;
+  border-radius: 18px;
+  background: radial-gradient(circle at top left, #ffffff, #fefce8);
+  box-shadow:
+    0 14px 35px rgba(15, 23, 42, 0.22),
+    0 3px 10px rgba(15, 23, 42, 0.16);
+  border: 1px solid rgba(148, 163, 184, 0.5);
   backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .study-card-front {
-  background: #fefce8;
-}
-
-.study-card-back {
-  background: #ecfeff;
-  transform: rotateY(180deg);
-}
-
-.study-card-wrapper {
-  perspective: 1000px;
-}
-
-.study-card {
-  position: relative;
-  width: 100%;
-  min-height: 120px;
-  transform-style: preserve-3d;
-  transition: transform 0.4s ease;
-}
-
-/* Flip */
-.study-card.flip {
-  transform: rotateY(180deg);
-}
-
-.study-card-face {
-  position: absolute;
-  inset: 0;
-  padding: 1rem;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backface-visibility: hidden;
-}
-
-.study-card-front {
-  background: #fefce8;
-}
-
-.study-card-back {
-  background: #ecfeff;
-  transform: rotateY(180deg);
-}
-
-
-
-
-
-@keyframes slideLeft {
-  from {
-    transform: translateX(-12px);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideRight {
-  from {
-    transform: translateX(12px);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
--front {
   transform: rotateY(0deg);
 }
 
 .study-card-back {
+  background: radial-gradient(circle at top left, #ffffff, #ecfeff);
   transform: rotateY(180deg);
 }
 
-/* Optional subtle accent bar at top */
 .study-card-face::before {
   content: "";
   position: absolute;
@@ -171,29 +356,72 @@
   opacity: 0.7;
 }
 
-/* Text tweaks */
+.study-card-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  text-align: center;
+}
+
 .study-card-face-header {
-  font-size: 12px;
-  color: #9ca3af;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4b5563;
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  flex-shrink: 0;
 }
 
 .study-card-face-body {
+  flex: 1;
   font-size: 1.1rem;
   font-weight: 500;
   color: #111827;
   text-align: center;
   line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  overflow-y: auto;
 }
 
-/* Hover lift */
 .study-card:hover {
   box-shadow:
     0 18px 40px rgba(15, 23, 42, 0.28),
     0 6px 20px rgba(15, 23, 42, 0.18);
 }
 
+.study-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
 
+.study-restart {
+  margin-left: auto;
+}
 
+/* Study nav buttons */
+.study-nav-button {
+  padding: 0.4rem 0.6rem;
+  background: #e5e7eb;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+  min-width: 40px;
+  flex-shrink: 0;
+  transition: background-color 120ms ease, transform 120ms ease;
+}
+
+.study-nav-button:hover {
+  background: #d1d5db;
+  transform: translateY(-1px);
+}
+
+.study-nav-button:active {
+  background: #9ca3af;
+  transform: translateY(0);
+}
