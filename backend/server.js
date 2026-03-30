@@ -4,7 +4,7 @@ const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-const PORT = 4000;
+
 
 app.use(cors());
 app.use(express.json());
@@ -268,6 +268,7 @@ app.delete('/cards/:id', requireUser, async (req, res) => {
   }
 });
 
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Flashcard backend running on http://localhost:${PORT}`);
 });
