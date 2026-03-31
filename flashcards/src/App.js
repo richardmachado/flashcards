@@ -6,7 +6,7 @@ import HeaderBar from "./HeaderBar";
 import ManageView from "./ManageView";
 import StudyView from "./StudyView";
 
-const API_URL = "http://localhost:4000";
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:4000";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
