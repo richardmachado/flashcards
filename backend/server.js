@@ -179,6 +179,10 @@ app.post("/billing/create-checkout-session", requireUser, async (req, res) => {
   }
 });
 
+console.log("FRONTEND_URL:", FRONTEND_URL);
+console.log("success_url:", `${FRONTEND_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`);
+console.log("cancel_url:", `${FRONTEND_URL}/billing/cancel`);
+
 // Logout (client clears token, but server helper)
 app.post('/auth/logout', async (req, res) => {
   try {
