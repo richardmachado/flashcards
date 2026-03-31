@@ -167,7 +167,7 @@ app.post("/billing/create-checkout-session", requireUser, async (req, res) => {
           quantity: 1,
         },
       ],
-      success_url: `${FRONTEND_URL}billing/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${FRONTEND_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${FRONTEND_URL}/billing/cancel`,
       metadata: { user_id: user.id },
     });
