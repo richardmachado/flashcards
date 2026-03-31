@@ -378,11 +378,27 @@ if (path === "/billing/success") {
       <div className="card-block" style={{ textAlign: "center", padding: "2rem" }}>
         <h2 className="section-title">You're now Pro!</h2>
         <p className="muted-text">
-          Your subscription is active. Log out and back in to activate Pro features.
+          Your subscription is active. Click below to continue.
         </p>
         <button
           className="btn btn-primary"
-          onClick={() => window.location.replace("/")}
+          onClick={async () => {
+            try {
+              // refresh user pro status before going back
+              const res = await fetch(`${API_URL}/auth/me`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+              const data = await res.json();
+              const userIsPro = !!data.user?.is_pro;
+              setIsPro(userIsPro);
+              localStorage.setItem("isPro", JSON.stringify(userIsPro));
+            } catch (err) {
+              console.error("Could not refresh pro status", err);
+            }
+            window.location.replace("/");
+          }}
         >
           Go to app
         </button>

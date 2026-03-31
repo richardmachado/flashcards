@@ -8,6 +8,60 @@ const { deepseek } = require("./deepseekClient");
 const app = express();
 
 app.use(cors());
+
+// IMPORTANT: must be before express.json() middleware
+app.post(
+  '/billing/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      console.error('Webhook signature error:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (
+      event.type === 'checkout.session.completed' ||
+      event.type === 'customer.subscription.updated'
+    ) {
+      const session = event.data.object;
+      const userId = session.metadata?.user_id;
+
+      if (userId) {
+        await supabase
+          .from('profiles')
+          .update({ is_pro: true })
+          .eq('id', userId);
+
+        console.log(`Set is_pro=true for user ${userId}`);
+      }
+    }
+
+    // Handle cancellations
+    if (event.type === 'customer.subscription.deleted') {
+      const subscription = event.data.object;
+      const userId = subscription.metadata?.user_id;
+
+      if (userId) {
+        await supabase
+          .from('profiles')
+          .update({ is_pro: false })
+          .eq('id', userId);
+      }
+    }
+
+    res.json({ received: true });
+  }
+);
+
 app.use(express.json());
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -133,24 +187,65 @@ app.post('/auth/signup', async (req, res) => {
 
 // Login
 app.post('/auth/login', async (req, res) => {
-  console.log('Login attempt:', req.body.email);
-  
   try {
-    console.log('Calling supabase.auth.signInWithPassword...');
     const { data, error } = await supabase.auth.signInWithPassword({
       email: req.body.email,
       password: req.body.password,
     });
-    
-    console.log('Supabase response:', { data: !!data, error: error?.message });
-    
     if (error) throw error;
-    res.json({ user: data.user, access_token: data.session.access_token });
+
+    // fetch is_pro from profiles
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_pro')
+      .eq('id', data.user.id)
+      .single();
+
+    res.json({
+      user: { ...data.user, is_pro: profile?.is_pro || false },
+      access_token: data.session.access_token,
+    });
   } catch (err) {
-    console.error('Full login error:', err);
     res.status(400).json({ error: err.message });
   }
 });
+
+// Signup
+app.post('/auth/signup', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password required' });
+  }
+  try {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+
+    // profile row is auto-created by trigger
+    res.json({
+      user: { ...data.user, is_pro: false },
+      access_token: data.session?.access_token,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/auth/me', requireUser, async (req, res) => {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_pro')
+      .eq('id', req.user.id)
+      .single();
+
+    res.json({
+      user: { ...req.user, is_pro: profile?.is_pro || false },
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 
 // after stripe, FRONTEND_URL, STRIPE_PRICE_ID are defined
 
@@ -179,23 +274,7 @@ app.post("/billing/create-checkout-session", requireUser, async (req, res) => {
   }
 });
 
-console.log("FRONTEND_URL:", FRONTEND_URL);
-console.log("success_url:", `${FRONTEND_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`);
-console.log("cancel_url:", `${FRONTEND_URL}/billing/cancel`);
 
-// Logout (client clears token, but server helper)
-app.post('/auth/logout', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-    if (token) {
-      await supabase.auth.signOut(token);
-    }
-    res.json({ success: true });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
 
 // Create deck
 app.post('/decks', requireUser, async (req, res) => {
