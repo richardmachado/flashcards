@@ -2,9 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
+const Stripe = require("stripe");
+const { deepseek } = require("./deepseekClient");
 
 const app = express();
-
 
 app.use(cors());
 app.use(express.json());
@@ -13,12 +14,19 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+
+
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://flashycardss.netlify.app";
+const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID; // set in Render
+
 console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ loaded' : '❌ missing');
 console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✅ loaded' : '❌ missing');
 
 
-// At the top
-const { deepseek } = require("./deepseekClient");
+
+
+
 
 // Simple test route – no auth yet
 app.post("/ai/test-generate-cards", async (req, res) => {
@@ -144,6 +152,32 @@ app.post('/auth/login', async (req, res) => {
   }
 });
 
+// after stripe, FRONTEND_URL, STRIPE_PRICE_ID are defined
+
+app.post("/billing/create-checkout-session", requireUser, async (req, res) => {
+  try {
+    const user = req.user; // from requireUser middleware
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      payment_method_types: ["card"],
+      customer_email: user.email,
+      line_items: [
+        {
+          price: STRIPE_PRICE_ID,
+          quantity: 1,
+        },
+      ],
+      success_url: `${FRONTEND_URL}billing/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${FRONTEND_URL}/billing/cancel`,
+      metadata: { user_id: user.id },
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Unable to create checkout session" });
+  }
+});
 
 // Logout (client clears token, but server helper)
 app.post('/auth/logout', async (req, res) => {

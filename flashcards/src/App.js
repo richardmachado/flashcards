@@ -6,12 +6,14 @@ import HeaderBar from "./HeaderBar";
 import ManageView from "./ManageView";
 import StudyView from "./StudyView";
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:4000";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [userEmail, setUserEmail] = useState(
     localStorage.getItem("userEmail") || ""
+  );
+  const [isPro, setIsPro] = useState(
+    JSON.parse(localStorage.getItem("isPro") || "false")
   );
 
   const [mode, setMode] = useState("login");
@@ -88,16 +90,26 @@ function App() {
         throw new Error("No access token returned");
       }
 
+      const userIsPro = !!data.user?.is_pro;
+
       setToken(data.access_token);
       setUserEmail(data.user?.email || email);
+      setIsPro(userIsPro);
+
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("userEmail", data.user?.email || email);
+      localStorage.setItem("isPro", JSON.stringify(userIsPro));
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   }
+
+  const API_URL =
+  // process.env.REACT_APP_API_URL || 
+  "http://localhost:4000";
+
 
   async function loadDecks() {
     if (!token) return;
@@ -133,6 +145,17 @@ function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  // Reset to first card when deck changes / size changes
+  const studyCards = cards.filter(
+    (card) => !selectedDeckId || card.deck_id === selectedDeckId
+  );
+
+  useEffect(() => {
+    setStudyIndex(0);
+    setShowBack(false);
+    setTransitionDir("none");
+  }, [studyCards.length, selectedDeckId]);
 
   async function handleCreateCard(e) {
     e.preventDefault();
@@ -255,27 +278,6 @@ function App() {
     }
   }
 
-  const studyCards = cards.filter(
-    (card) => !selectedDeckId || card.deck_id === selectedDeckId
-  );
-
-  useEffect(() => {
-  if (studyCards.length === 0) {
-    setStudyIndex(0);
-    setShowBack(false);
-    setTransitionDir("none");
-    return;
-  }
-
-  if (studyIndex >= studyCards.length) {
-    // if you were on 5 of 10 and new deck has 3 cards, go to first
-    setStudyIndex(0);
-    setShowBack(false);
-    setTransitionDir("none");
-  }
-}, [studyCards.length, selectedDeckId, studyIndex]); // run whenever deck or deck size changes
-
-
   function startStudy() {
     if (studyCards.length === 0) return;
     setStudyIndex(0);
@@ -295,7 +297,6 @@ function App() {
     setTransitionDir("none");
   }
 
-  // NEW: unshuffle while keeping current card
   function stopShuffle() {
     if (!isShuffled || studyCards.length === 0) {
       setIsShuffled(false);
@@ -303,14 +304,14 @@ function App() {
       return;
     }
 
-    const currentIndex =
+    const idx =
       shuffledIndices.length === studyCards.length
         ? shuffledIndices[studyIndex]
         : studyIndex;
 
     setIsShuffled(false);
     setShuffledIndices([]);
-    setStudyIndex(currentIndex);
+    setStudyIndex(idx);
     setShowBack(false);
     setTransitionDir("none");
   }
@@ -335,18 +336,31 @@ function App() {
     setShowBack((prev) => !prev);
   }
 
+  async function handleUpgrade() {
+    try {
+      const res = await api("/billing/create-checkout-session", {
+        method: "POST",
+      });
+      if (!res.url) throw new Error("No checkout URL returned");
+      window.location.href = res.url;
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   function handleLogout() {
     setToken("");
     setUserEmail("");
+    setIsPro(false);
     localStorage.removeItem("token");
     localStorage.removeItem("userEmail");
+    localStorage.removeItem("isPro");
     setCards([]);
     setView("manage");
   }
 
   const anySelected = aiGeneratedCards.some((c) => c.selected);
 
-  // derive the index into studyCards based on shuffle
   const currentIndex =
     isShuffled && shuffledIndices.length === studyCards.length
       ? shuffledIndices[studyIndex]
@@ -372,7 +386,12 @@ function App() {
         />
       ) : (
         <>
-          <HeaderBar userEmail={userEmail} onLogout={handleLogout} />
+          <HeaderBar
+            userEmail={userEmail}
+            isPro={isPro}
+            onLogout={handleLogout}
+            onUpgrade={handleUpgrade}
+          />
 
           <div className="view-toggle">
             <button
@@ -437,6 +456,7 @@ function App() {
               anySelected={anySelected}
               onGenerate={handleGenerateFromText}
               onSaveGenerated={handleSaveGeneratedCards}
+              isPro={isPro}
             />
           )}
 
