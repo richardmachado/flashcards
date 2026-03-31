@@ -162,29 +162,6 @@ async function requireUser(req, res, next) {
   }
 }
 
-// Signup (no email confirmation needed)
-app.post('/auth/signup', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password required' });
-  }
-
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    if (error) throw error;
-
-    res.json({
-      user: data.user,
-      access_token: data.session?.access_token,
-    });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
 // Login
 app.post('/auth/login', async (req, res) => {
   try {
