@@ -368,7 +368,50 @@ function App() {
 
   const currentCard = studyCards[currentIndex];
 
+  // detect /billing/success redirect from Stripe
+const path = window.location.pathname;
+
+if (path === "/billing/success") {
   return (
+    <div className="app-root">
+      <h1 className="app-title">Flashcards</h1>
+      <div className="card-block" style={{ textAlign: "center", padding: "2rem" }}>
+        <h2 className="section-title">You're now Pro!</h2>
+        <p className="muted-text">
+          Your subscription is active. Log out and back in to activate Pro features.
+        </p>
+        <button
+          className="btn btn-primary"
+          onClick={() => window.location.replace("/")}
+        >
+          Go to app
+        </button>
+      </div>
+    </div>
+  );
+}
+
+if (path === "/billing/cancel") {
+  return (
+    <div className="app-root">
+      <h1 className="app-title">Flashcards</h1>
+      <div className="card-block" style={{ textAlign: "center", padding: "2rem" }}>
+        <h2 className="section-title">Checkout cancelled</h2>
+        <p className="muted-text">No charge was made.</p>
+        <button
+          className="btn btn-gray"
+          onClick={() => window.location.replace("/")}
+        >
+          Back to app
+        </button>
+      </div>
+    </div>
+  );
+}
+
+  return (
+
+    
     <div className="app-root">
       <h1 className="app-title">Flashcards</h1>
 
