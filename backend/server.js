@@ -1,20 +1,61 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
+require("dotenv").config();
+
+const express = require("express");
+const cors = require("cors");
+const { createClient } = require("@supabase/supabase-js");
 const Stripe = require("stripe");
 const { deepseek } = require("./deepseekClient");
 
 const app = express();
 
-app.use(cors());
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// IMPORTANT: must be before express.json() middleware
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const FRONTEND_URL =
+  process.env.FRONTEND_URL || "https://flashycardss.netlify.app";
+const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID;
+
+// Client for auth-related user token checks
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Admin client for profiles + webhook DB writes
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+});
+
+console.log("SUPABASE_URL:", supabaseUrl ? "✅ loaded" : "❌ missing");
+console.log("SUPABASE_ANON_KEY:", supabaseAnonKey ? "✅ loaded" : "❌ missing");
+console.log(
+  "SUPABASE_SERVICE_ROLE_KEY:",
+  supabaseServiceRoleKey ? "✅ loaded" : "❌ missing"
+);
+console.log(
+  "STRIPE_SECRET_KEY:",
+  process.env.STRIPE_SECRET_KEY ? "✅ loaded" : "❌ missing"
+);
+console.log(
+  "STRIPE_WEBHOOK_SECRET:",
+  process.env.STRIPE_WEBHOOK_SECRET ? "✅ loaded" : "❌ missing"
+);
+
+app.use(
+  cors({
+    origin: true,
+    credentials: false,
+  })
+);
+
+// Stripe webhook must be before express.json()
 app.post(
-  '/billing/webhook',
-  express.raw({ type: 'application/json' }),
+  "/billing/webhook",
+  express.raw({ type: "application/json" }),
   async (req, res) => {
-    const sig = req.headers['stripe-signature'];
+    const sig = req.headers["stripe-signature"];
     let event;
 
     try {
@@ -24,70 +65,71 @@ app.post(
         process.env.STRIPE_WEBHOOK_SECRET
       );
     } catch (err) {
-      console.error('Webhook signature error:', err.message);
+      console.error("Webhook signature error:", err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    if (
-      event.type === 'checkout.session.completed' ||
-      event.type === 'customer.subscription.updated'
-    ) {
-      const session = event.data.object;
-      const userId = session.metadata?.user_id;
+    try {
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object;
+        const userId = session.metadata?.user_id;
+        const customerId = session.customer || null;
 
-      if (userId) {
-        await supabase
-          .from('profiles')
-          .update({ is_pro: true })
-          .eq('id', userId);
+        if (userId) {
+          const { error } = await supabaseAdmin
+            .from("profiles")
+            .update({
+              is_pro: true,
+              stripe_customer_id: customerId,
+            })
+            .eq("id", userId);
 
-        console.log(`Set is_pro=true for user ${userId}`);
+          if (error) {
+            console.error("profiles update error:", error);
+          } else {
+            console.log(`Set is_pro=true for user ${userId}`);
+          }
+        }
       }
-    }
 
-    // Handle cancellations
-    if (event.type === 'customer.subscription.deleted') {
-      const subscription = event.data.object;
-      const userId = subscription.metadata?.user_id;
+      if (event.type === "customer.subscription.deleted") {
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
 
-      if (userId) {
-        await supabase
-          .from('profiles')
-          .update({ is_pro: false })
-          .eq('id', userId);
+        if (customerId) {
+          const { error } = await supabaseAdmin
+            .from("profiles")
+            .update({ is_pro: false })
+            .eq("stripe_customer_id", customerId);
+
+          if (error) {
+            console.error("profiles downgrade error:", error);
+          } else {
+            console.log(
+              `Set is_pro=false for stripe customer ${customerId}`
+            );
+          }
+        }
       }
-    }
 
-    res.json({ received: true });
+      res.json({ received: true });
+    } catch (err) {
+      console.error("Webhook handler error:", err);
+      res.status(500).json({ error: "Webhook handler failed" });
+    }
   }
 );
 
 app.use(express.json());
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-
-
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const FRONTEND_URL = process.env.FRONTEND_URL || "https://flashycardss.netlify.app";
-const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID; // set in Render
-
-console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ loaded' : '❌ missing');
-console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✅ loaded' : '❌ missing');
-
-
-
-
-
-
-// Simple test route – no auth yet
+// AI route
 app.post("/ai/test-generate-cards", async (req, res) => {
   const { text } = req.body;
 
   if (!text || text.trim().length < 30) {
-    return res.status(400).json({ error: "Please provide at least 30 characters of text." });
+    return res
+      .status(400)
+      .json({ error: "Please provide at least 30 characters of text." });
   }
 
   try {
@@ -100,7 +142,7 @@ Return STRICT JSON only, with this shape:
   ]
 }
 Keep questions short and concrete. Max 10 cards.
-`;
+`.trim();
 
     const userPrompt = `Create flashcards from this material:\n\n${text}`;
 
@@ -110,13 +152,14 @@ Keep questions short and concrete. Max 10 cards.
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      response_format: { type: "json_object" }, // ask for valid JSON
+      response_format: { type: "json_object" },
       temperature: 0.5,
       max_tokens: 600,
     });
 
     const content = response.choices[0]?.message?.content || "{}";
     let parsed;
+
     try {
       parsed = JSON.parse(content);
     } catch (e) {
@@ -140,66 +183,74 @@ Keep questions short and concrete. Max 10 cards.
   }
 });
 
-
-// Middleware to validate token and attach user
+// Middleware to validate token and attach auth user
 async function requireUser(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing or invalid token' });
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Missing or invalid token" });
   }
 
   const token = authHeader.slice(7);
 
   try {
     const { data, error } = await supabase.auth.getUser(token);
+
     if (error || !data.user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ error: "Invalid token" });
     }
+
     req.user = data.user;
     next();
   } catch (err) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: "Unauthorized" });
   }
 }
 
-// Login
-app.post('/auth/login', async (req, res) => {
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: req.body.email,
-      password: req.body.password,
-    });
-    if (error) throw error;
+// Ensure profile row exists
+async function ensureProfile(user) {
+  const { error } = await supabaseAdmin.from("profiles").upsert(
+    [
+      {
+        id: user.id,
+        is_pro: false,
+      },
+    ],
+    { onConflict: "id" }
+  );
 
-    // fetch is_pro from profiles
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_pro')
-      .eq('id', data.user.id)
-      .single();
-
-    res.json({
-      user: { ...data.user, is_pro: profile?.is_pro || false },
-      access_token: data.session.access_token,
-    });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+  if (error) {
+    console.error("ensureProfile error:", error);
   }
-});
+}
 
 // Signup
-app.post('/auth/signup', async (req, res) => {
+app.post("/auth/signup", async (req, res) => {
   const { email, password } = req.body;
+
   if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password required' });
+    return res.status(400).json({ error: "Email and password required" });
   }
+
   try {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
 
-    // profile row is auto-created by trigger
+    if (data.user) {
+      await ensureProfile(data.user);
+    }
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("is_pro")
+      .eq("id", data.user.id)
+      .maybeSingle();
+
     res.json({
-      user: { ...data.user, is_pro: false },
+      user: {
+        ...data.user,
+        is_pro: !!profile?.is_pro,
+      },
       access_token: data.session?.access_token,
     });
   } catch (err) {
@@ -207,11 +258,48 @@ app.post('/auth/signup', async (req, res) => {
   }
 });
 
+// Login
+app.post("/auth/login", async (req, res) => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: req.body.email,
+      password: req.body.password,
+    });
+
+    if (error) throw error;
+
+    await ensureProfile(data.user);
+
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("is_pro")
+      .eq("id", data.user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("login profile error:", profileError);
+    }
+
+    res.json({
+      user: {
+        ...data.user,
+        is_pro: !!profile?.is_pro,
+      },
+      access_token: data.session.access_token,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Me
 app.get("/me", requireUser, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    console.log("req.user.id =", req.user.id);
+
+    const { data: profile, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, is_pro")
+      .select("id, is_pro, stripe_customer_id")
       .eq("id", req.user.id)
       .maybeSingle();
 
@@ -221,7 +309,7 @@ app.get("/me", requireUser, async (req, res) => {
       user: {
         id: req.user.id,
         email: req.user.email,
-        is_pro: !!data?.is_pro,
+        is_pro: !!profile?.is_pro,
       },
     });
   } catch (err) {
@@ -230,29 +318,16 @@ app.get("/me", requireUser, async (req, res) => {
   }
 });
 
-app.get('/auth/me', requireUser, async (req, res) => {
-  try {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_pro')
-      .eq('id', req.user.id)
-      .single();
-      console.log("req.user.id =", req.user.id);
-
-    res.json({
-      user: { ...req.user, is_pro: profile?.is_pro || false },
-    });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-
-// after stripe, FRONTEND_URL, STRIPE_PRICE_ID are defined
-
+// Create Stripe checkout session
 app.post("/billing/create-checkout-session", requireUser, async (req, res) => {
   try {
-    const user = req.user; // from requireUser middleware
+    const user = req.user;
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("id", user.id)
+      .maybeSingle();
 
     const successUrl = `${FRONTEND_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${FRONTEND_URL}/billing/cancel`;
@@ -261,7 +336,7 @@ app.post("/billing/create-checkout-session", requireUser, async (req, res) => {
     console.log("successUrl =", JSON.stringify(successUrl));
     console.log("cancelUrl =", JSON.stringify(cancelUrl));
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionPayload = {
       mode: "subscription",
       payment_method_types: ["card"],
       customer_email: user.email,
@@ -271,33 +346,42 @@ app.post("/billing/create-checkout-session", requireUser, async (req, res) => {
           quantity: 1,
         },
       ],
-      success_url: `${FRONTEND_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${FRONTEND_URL}/billing/cancel`,
-      metadata: { user_id: user.id },
-    });
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: {
+        user_id: user.id,
+      },
+    };
+
+    if (profile?.stripe_customer_id) {
+      sessionPayload.customer = profile.stripe_customer_id;
+      delete sessionPayload.customer_email;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionPayload);
 
     res.json({ url: session.url });
   } catch (err) {
-    console.error(err);
+    console.error("checkout error:", err);
     res.status(500).json({ error: "Unable to create checkout session" });
   }
 });
 
-
-
 // Create deck
-app.post('/decks', requireUser, async (req, res) => {
+app.post("/decks", requireUser, async (req, res) => {
   const { name } = req.body;
+
   if (!name || !name.trim()) {
-    return res.status(400).json({ error: 'Deck name required' });
+    return res.status(400).json({ error: "Deck name required" });
   }
 
   try {
     const { data, error } = await supabase
-      .from('decks')
+      .from("decks")
       .insert([{ name: name.trim(), user_id: req.user.id }])
       .select()
       .single();
+
     if (error) throw error;
     res.json(data);
   } catch (err) {
@@ -306,13 +390,14 @@ app.post('/decks', requireUser, async (req, res) => {
 });
 
 // List decks
-app.get('/decks', requireUser, async (req, res) => {
+app.get("/decks", requireUser, async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('decks')
-      .select('*')
-      .eq('user_id', req.user.id)
-      .order('created_at', { ascending: true });
+      .from("decks")
+      .select("*")
+      .eq("user_id", req.user.id)
+      .order("created_at", { ascending: true });
+
     if (error) throw error;
     res.json(data);
   } catch (err) {
@@ -320,20 +405,21 @@ app.get('/decks', requireUser, async (req, res) => {
   }
 });
 
-
-// CREATE card
-app.post('/cards', requireUser, async (req, res) => {
+// Create card
+app.post("/cards", requireUser, async (req, res) => {
   const { front, back, deck_id } = req.body;
+
   if (!deck_id) {
-    return res.status(400).json({ error: 'deck_id required' });
+    return res.status(400).json({ error: "deck_id required" });
   }
 
   try {
     const { data, error } = await supabase
-      .from('cards')
+      .from("cards")
       .insert([{ front, back, deck_id, user_id: req.user.id }])
       .select()
       .single();
+
     if (error) throw error;
     res.json(data);
   } catch (err) {
@@ -341,15 +427,15 @@ app.post('/cards', requireUser, async (req, res) => {
   }
 });
 
-
-// READ all user's cards
-app.get('/cards', requireUser, async (req, res) => {
+// Read cards
+app.get("/cards", requireUser, async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('cards')
-      .select('*')
-      .eq('user_id', req.user.id)
-      .order('created_at', { ascending: false });
+      .from("cards")
+      .select("*")
+      .eq("user_id", req.user.id)
+      .order("created_at", { ascending: false });
+
     if (error) throw error;
     res.json(data);
   } catch (err) {
@@ -357,19 +443,20 @@ app.get('/cards', requireUser, async (req, res) => {
   }
 });
 
-// UPDATE card
-app.put('/cards/:id', requireUser, async (req, res) => {
+// Update card
+app.put("/cards/:id", requireUser, async (req, res) => {
   const { id } = req.params;
   const updates = req.body;
 
   try {
     const { data, error } = await supabase
-      .from('cards')
+      .from("cards")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .eq('user_id', req.user.id)
+      .eq("id", id)
+      .eq("user_id", req.user.id)
       .select()
       .single();
+
     if (error) throw error;
     res.json(data);
   } catch (err) {
@@ -377,16 +464,17 @@ app.put('/cards/:id', requireUser, async (req, res) => {
   }
 });
 
-// DELETE card
-app.delete('/cards/:id', requireUser, async (req, res) => {
+// Delete card
+app.delete("/cards/:id", requireUser, async (req, res) => {
   const { id } = req.params;
 
   try {
     const { error } = await supabase
-      .from('cards')
+      .from("cards")
       .delete()
-      .eq('id', id)
-      .eq('user_id', req.user.id);
+      .eq("id", id)
+      .eq("user_id", req.user.id);
+
     if (error) throw error;
     res.json({ success: true });
   } catch (err) {
