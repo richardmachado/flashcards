@@ -74,41 +74,59 @@ function App() {
     return data;
   }
 
-  async function handleAuth(e) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+ async function handleAuth(e) {
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-    try {
-      const path = mode === "login" ? "/auth/login" : "/auth/signup";
-      const data = await api(path, {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      });
+  try {
+    const path = mode === "login" ? "/auth/login" : "/auth/signup";
+    const data = await api(path, {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
 
-      if (!data.access_token) {
-        throw new Error("No access token returned");
-      }
-
-      const userIsPro = !!data.user?.is_pro;
-
-      setToken(data.access_token);
-      setUserEmail(data.user?.email || email);
-      setIsPro(userIsPro);
-
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem("userEmail", data.user?.email || email);
-      localStorage.setItem("isPro", JSON.stringify(userIsPro));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    if (!data.access_token) {
+      throw new Error("No access token returned");
     }
-  }
 
-  const API_URL =
-  // process.env.REACT_APP_API_URL || 
+    setToken(data.access_token);
+    localStorage.setItem("token", data.access_token);
+
+    await loadMe(data.access_token);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+  const API_URL = process.env.REACT_APP_API_URL || 
   "http://localhost:4000";
+
+  async function loadMe(authToken = token) {
+  if (!authToken) return;
+
+  try {
+    const res = await fetch(`${API_URL}/me`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load user");
+
+    setUserEmail(data.user?.email || "");
+    setIsPro(!!data.user?.is_pro);
+
+    localStorage.setItem("userEmail", data.user?.email || "");
+    localStorage.setItem("isPro", JSON.stringify(!!data.user?.is_pro));
+  } catch (err) {
+    console.error("loadMe error:", err.message);
+  }
+}
 
 
   async function loadDecks() {
@@ -140,6 +158,7 @@ function App() {
 
   useEffect(() => {
     if (token) {
+      loadMe(token);
       loadDecks();
       loadCards();
     }

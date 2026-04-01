@@ -207,6 +207,16 @@ app.post('/auth/signup', async (req, res) => {
   }
 });
 
+app.get("/me", requireUser, async (req, res) => {
+  res.json({
+    user: {
+      id: req.user.id,
+      email: req.user.email,
+      is_pro: req.user.is_pro || false,
+    },
+  });
+});
+
 app.get('/auth/me', requireUser, async (req, res) => {
   try {
     const { data: profile } = await supabase
