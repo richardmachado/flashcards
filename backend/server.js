@@ -237,6 +237,7 @@ app.get('/auth/me', requireUser, async (req, res) => {
       .select('is_pro')
       .eq('id', req.user.id)
       .single();
+      console.log("req.user.id =", req.user.id);
 
     res.json({
       user: { ...req.user, is_pro: profile?.is_pro || false },
