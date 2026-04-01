@@ -211,9 +211,9 @@ app.get("/me", requireUser, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("is_pro")
+      .select("id, is_pro")
       .eq("id", req.user.id)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
