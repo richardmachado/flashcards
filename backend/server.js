@@ -239,6 +239,14 @@ app.get('/auth/me', requireUser, async (req, res) => {
 app.post("/billing/create-checkout-session", requireUser, async (req, res) => {
   try {
     const user = req.user; // from requireUser middleware
+
+    const successUrl = `${FRONTEND_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${FRONTEND_URL}/billing/cancel`;
+
+    console.log("FRONTEND_URL =", JSON.stringify(FRONTEND_URL));
+    console.log("successUrl =", JSON.stringify(successUrl));
+    console.log("cancelUrl =", JSON.stringify(cancelUrl));
+    
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
