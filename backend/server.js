@@ -208,13 +208,26 @@ app.post('/auth/signup', async (req, res) => {
 });
 
 app.get("/me", requireUser, async (req, res) => {
-  res.json({
-    user: {
-      id: req.user.id,
-      email: req.user.email,
-      is_pro: req.user.is_pro || false,
-    },
-  });
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("is_pro")
+      .eq("id", req.user.id)
+      .single();
+
+    if (error) throw error;
+
+    res.json({
+      user: {
+        id: req.user.id,
+        email: req.user.email,
+        is_pro: !!data?.is_pro,
+      },
+    });
+  } catch (err) {
+    console.error("/me error:", err);
+    res.status(500).json({ error: "Failed to load user profile" });
+  }
 });
 
 app.get('/auth/me', requireUser, async (req, res) => {
@@ -246,7 +259,7 @@ app.post("/billing/create-checkout-session", requireUser, async (req, res) => {
     console.log("FRONTEND_URL =", JSON.stringify(FRONTEND_URL));
     console.log("successUrl =", JSON.stringify(successUrl));
     console.log("cancelUrl =", JSON.stringify(cancelUrl));
-    
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
