@@ -276,6 +276,9 @@ app.post("/auth/login", async (req, res) => {
       .eq("id", data.user.id)
       .maybeSingle();
 
+      console.log("profile =", profile);
+      console.log("profile error =", error);
+
     if (profileError) {
       console.error("login profile error:", profileError);
     }
