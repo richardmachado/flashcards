@@ -6,6 +6,7 @@ import HeaderBar from "./HeaderBar";
 import ManageView from "./ManageView";
 import StudyView from "./StudyView";
 
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:4000";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
@@ -36,10 +37,9 @@ function App() {
 
   const [studyIndex, setStudyIndex] = useState(0);
   const [showBack, setShowBack] = useState(false);
-  const [view, setView] = useState("manage"); // "manage" | "study"
+  const [view, setView] = useState("manage");
   const [transitionDir, setTransitionDir] = useState("none");
 
-  // AI generation
   const [aiSourceText, setAiSourceText] = useState("");
   const [aiGeneratedCards, setAiGeneratedCards] = useState([]);
   const [aiLoading, setAiLoading] = useState(false);
@@ -74,62 +74,60 @@ function App() {
     return data;
   }
 
- async function handleAuth(e) {
-  e.preventDefault();
-  setError("");
-  setLoading(true);
-
-  try {
-    const path = mode === "login" ? "/auth/login" : "/auth/signup";
-    const data = await api(path, {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-    console.log("loadMe response:", data);
-
-    if (!data.access_token) {
-      throw new Error("No access token returned");
-    }
-
-    setToken(data.access_token);
-    localStorage.setItem("token", data.access_token);
-
-    await loadMe(data.access_token);
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-}
-
-  const API_URL = process.env.REACT_APP_API_URL || 
-  "http://localhost:4000";
-
   async function loadMe(authToken = token) {
-  if (!authToken) return;
+    if (!authToken) return;
 
-  try {
-    const res = await fetch(`${API_URL}/me`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
+    try {
+      const res = await fetch(`${API_URL}/me`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to load user");
+      const data = await res.json();
+      console.log("/me response:", data);
 
-    setUserEmail(data.user?.email || "");
-    setIsPro(!!data.user?.is_pro);
-    localStorage.setItem("isPro", JSON.stringify(!!data.user?.is_pro));
+      if (!res.ok) throw new Error(data.error || "Failed to load user");
 
-    localStorage.setItem("userEmail", data.user?.email || "");
-    localStorage.setItem("isPro", JSON.stringify(!!data.user?.is_pro));
-  } catch (err) {
-    console.error("loadMe error:", err.message);
+      setUserEmail(data.user?.email || "");
+      setIsPro(!!data.user?.is_pro);
+
+      localStorage.setItem("userEmail", data.user?.email || "");
+      localStorage.setItem("isPro", JSON.stringify(!!data.user?.is_pro));
+    } catch (err) {
+      console.error("loadMe error:", err.message);
+    }
   }
-}
 
+  async function handleAuth(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const path = mode === "login" ? "/auth/login" : "/auth/signup";
+      const data = await api(path, {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+
+      console.log("auth response:", data);
+
+      if (!data.access_token) {
+        throw new Error("No access token returned");
+      }
+
+      setToken(data.access_token);
+      localStorage.setItem("token", data.access_token);
+
+      await loadMe(data.access_token);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function loadDecks() {
     if (!token) return;
@@ -167,7 +165,6 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // Reset to first card when deck changes / size changes
   const studyCards = cards.filter(
     (card) => !selectedDeckId || card.deck_id === selectedDeckId
   );
@@ -181,8 +178,10 @@ function App() {
   async function handleCreateCard(e) {
     e.preventDefault();
     if (!front.trim() || !back.trim() || !selectedDeckId) return;
+
     setError("");
     setLoading(true);
+
     try {
       await api("/cards", {
         method: "POST",
@@ -192,6 +191,7 @@ function App() {
           deck_id: selectedDeckId,
         }),
       });
+
       setFront("");
       setBack("");
       await loadCards();
@@ -214,6 +214,7 @@ function App() {
         method: "POST",
         body: JSON.stringify({ text: aiSourceText }),
       });
+
       const newCards = Array.isArray(data.cards) ? data.cards : [];
       setAiGeneratedCards(newCards.map((c) => ({ ...c, selected: true })));
     } catch (err) {
@@ -256,6 +257,7 @@ function App() {
   async function handleDeleteCard(id) {
     setError("");
     setLoading(true);
+
     try {
       await api(`/cards/${id}`, {
         method: "DELETE",
@@ -280,6 +282,7 @@ function App() {
 
     setError("");
     setLoading(true);
+
     try {
       await api(`/cards/${editingId}`, {
         method: "PUT",
@@ -288,6 +291,7 @@ function App() {
           back: editBack,
         }),
       });
+
       setEditingId(null);
       setEditFront("");
       setEditBack("");
@@ -388,67 +392,60 @@ function App() {
       : studyIndex;
 
   const currentCard = studyCards[currentIndex];
+  const path = window.location.pathname;
 
-  // detect /billing/success redirect from Stripe
-const path = window.location.pathname;
-
-if (path === "/billing/success") {
-  return (
-    <div className="app-root">
-      <h1 className="app-title">Flashcards</h1>
-      <div className="card-block" style={{ textAlign: "center", padding: "2rem" }}>
-        <h2 className="section-title">You're now Pro!</h2>
-        <p className="muted-text">
-          Your subscription is active. Click below to continue.
-        </p>
-        <button
-          className="btn btn-primary"
-          onClick={async () => {
-            try {
-              // refresh user pro status before going back
-              const res = await fetch(`${API_URL}/auth/me`, {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              });
-              const data = await res.json();
-              const userIsPro = !!data.user?.is_pro;
-              setIsPro(userIsPro);
-              localStorage.setItem("isPro", JSON.stringify(userIsPro));
-            } catch (err) {
-              console.error("Could not refresh pro status", err);
-            }
-            window.location.replace("/");
-          }}
+  if (path === "/billing/success") {
+    return (
+      <div className="app-root">
+        <h1 className="app-title">Flashcards</h1>
+        <div
+          className="card-block"
+          style={{ textAlign: "center", padding: "2rem" }}
         >
-          Go to app
-        </button>
+          <h2 className="section-title">You're now Pro!</h2>
+          <p className="muted-text">
+            Your subscription is active. Click below to continue.
+          </p>
+          <button
+            className="btn btn-primary"
+            onClick={async () => {
+              try {
+                await loadMe(token);
+              } catch (err) {
+                console.error("Could not refresh pro status", err);
+              }
+              window.location.replace("/");
+            }}
+          >
+            Go to app
+          </button>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-if (path === "/billing/cancel") {
-  return (
-    <div className="app-root">
-      <h1 className="app-title">Flashcards</h1>
-      <div className="card-block" style={{ textAlign: "center", padding: "2rem" }}>
-        <h2 className="section-title">Checkout cancelled</h2>
-        <p className="muted-text">No charge was made.</p>
-        <button
-          className="btn btn-gray"
-          onClick={() => window.location.replace("/")}
+  if (path === "/billing/cancel") {
+    return (
+      <div className="app-root">
+        <h1 className="app-title">Flashcards</h1>
+        <div
+          className="card-block"
+          style={{ textAlign: "center", padding: "2rem" }}
         >
-          Back to app
-        </button>
+          <h2 className="section-title">Checkout cancelled</h2>
+          <p className="muted-text">No charge was made.</p>
+          <button
+            className="btn btn-gray"
+            onClick={() => window.location.replace("/")}
+          >
+            Back to app
+          </button>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
-
-    
     <div className="app-root">
       <h1 className="app-title">Flashcards</h1>
 

@@ -265,23 +265,19 @@ app.post("/auth/login", async (req, res) => {
       email: req.body.email,
       password: req.body.password,
     });
-
     if (error) throw error;
 
     await ensureProfile(data.user);
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
-      .select("is_pro")
+      .select("id, is_pro")
       .eq("id", data.user.id)
       .maybeSingle();
 
-      console.log("profile =", profile);
-      console.log("profile error =", error);
-
-    if (profileError) {
-      console.error("login profile error:", profileError);
-    }
+    console.log("LOGIN user.id =", data.user.id);
+    console.log("LOGIN profile =", profile);
+    console.log("LOGIN profileError =", profileError);
 
     res.json({
       user: {
@@ -291,6 +287,7 @@ app.post("/auth/login", async (req, res) => {
       access_token: data.session.access_token,
     });
   } catch (err) {
+    console.error("login error:", err);
     res.status(400).json({ error: err.message });
   }
 });
