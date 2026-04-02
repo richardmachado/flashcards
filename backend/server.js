@@ -28,6 +28,10 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
   },
 });
 
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error("SUPABASE_SERVICE_ROLE_KEY missing");
+}
+
 console.log("SUPABASE_URL:", supabaseUrl ? "✅ loaded" : "❌ missing");
 console.log("SUPABASE_ANON_KEY:", supabaseAnonKey ? "✅ loaded" : "❌ missing");
 console.log(
@@ -292,6 +296,29 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
+app.get("/debug/profile-direct", async (req, res) => {
+  const targetId = "9d515465-6389-47ef-8688-cb3e52a0aa58";
+
+  const profileQuery = await supabaseAdmin
+    .from("profiles")
+    .select("id, is_pro, created_at");
+
+  const exactMatch = await supabaseAdmin
+    .from("profiles")
+    .select("id, is_pro, created_at")
+    .eq("id", targetId)
+    .maybeSingle();
+
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL,
+    targetId,
+    profileCountSample: profileQuery.data?.length || 0,
+    profileSample: profileQuery.data?.slice(0, 5) || [],
+    exactMatch: exactMatch.data,
+    exactMatchError: exactMatch.error,
+  });
+});
+
 // Me
 app.get("/me", requireUser, async (req, res) => {
   try {
@@ -485,4 +512,64 @@ app.delete("/cards/:id", requireUser, async (req, res) => {
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Flashcard backend running on http://localhost:${PORT}`);
+});
+
+console.log("SUPABASE_URL =", process.env.SUPABASE_URL);
+console.log(
+  "SERVICE ROLE PRESENT =",
+  !!process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+console.log(
+  "SERVICE ROLE PREFIX =",
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20)
+);
+
+app.get("/debug/clients", async (req, res) => {
+  const anonResult = await supabase
+    .from("profiles")
+    .select("id, is_pro")
+    .limit(5);
+
+  const adminResult = await supabaseAdmin
+    .from("profiles")
+    .select("id, is_pro")
+    .limit(5);
+
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL,
+    anonKeyPrefix: process.env.SUPABASE_ANON_KEY?.slice(0, 20),
+    serviceRolePrefix: process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20),
+    anon: {
+      data: anonResult.data,
+      error: anonResult.error,
+    },
+    admin: {
+      data: adminResult.data,
+      error: adminResult.error,
+    },
+  });
+});
+
+app.get("/debug/sql-shape", async (req, res) => {
+  const profiles = await supabaseAdmin.from("profiles").select("*").limit(5);
+  const decks = await supabaseAdmin.from("decks").select("*").limit(5);
+  const cards = await supabaseAdmin.from("cards").select("*").limit(5);
+
+  res.json({
+    profiles,
+    decks,
+    cards,
+  });
+});
+
+app.get("/debug/rest-role", async (req, res) => {
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL,
+    anonPresent: !!process.env.SUPABASE_ANON_KEY,
+    servicePresent: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    anonPrefix: process.env.SUPABASE_ANON_KEY?.slice(0, 30),
+    servicePrefix: process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 30),
+    sameKey:
+      process.env.SUPABASE_ANON_KEY === process.env.SUPABASE_SERVICE_ROLE_KEY,
+  });
 });
