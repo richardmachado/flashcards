@@ -243,9 +243,9 @@ app.post("/auth/signup", async (req, res) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
 
-    if (data.user) {
-      await ensureProfile(data.user);
-    }
+    // if (data.user) {
+    //   await ensureProfile(data.user);
+    // }
 
     const { data: profile } = await supabaseAdmin
       .from("profiles")
