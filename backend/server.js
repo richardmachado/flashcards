@@ -79,6 +79,9 @@ app.post(
         const userId = session.metadata?.user_id;
         const customerId = session.customer || null;
 
+        const { data, error } = await supabaseAdmin.rpc('test_authorization_header');
+console.log({ data, error });
+
         if (userId) {
           const { error } = await supabaseAdmin
             .from("profiles")
@@ -571,5 +574,28 @@ app.get("/debug/rest-role", async (req, res) => {
     servicePrefix: process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 30),
     sameKey:
       process.env.SUPABASE_ANON_KEY === process.env.SUPABASE_SERVICE_ROLE_KEY,
+  });
+});
+
+app.get("/debug/admin-profiles", async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from("profiles")
+    .select("id, is_pro")
+    .limit(5);
+
+  res.json({ data, error });
+});
+
+app.get("/debug/me-profile", requireUser, async (req, res) => {
+  const { data: profile, error } = await supabaseAdmin
+    .from("profiles")
+    .select("*")
+    .eq("id", req.user.id);
+
+  res.json({
+    authUserId: req.user.id,
+    authEmail: req.user.email,
+    profileRows: profile,
+    error,
   });
 });
