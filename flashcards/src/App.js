@@ -85,6 +85,7 @@ function App() {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
+    console.log("loadMe response:", data);
 
     if (!data.access_token) {
       throw new Error("No access token returned");
@@ -120,6 +121,7 @@ function App() {
 
     setUserEmail(data.user?.email || "");
     setIsPro(!!data.user?.is_pro);
+    localStorage.setItem("isPro", JSON.stringify(!!data.user?.is_pro));
 
     localStorage.setItem("userEmail", data.user?.email || "");
     localStorage.setItem("isPro", JSON.stringify(!!data.user?.is_pro));
