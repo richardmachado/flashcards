@@ -334,7 +334,9 @@ app.get("/me", requireUser, async (req, res) => {
       user: {
         id: req.user.id,
         email: req.user.email,
+        // ✅ use profiles.is_pro as the source of truth
         is_pro: !!profile?.is_pro,
+        stripe_customer_id: profile?.stripe_customer_id || null,
       },
     });
   } catch (err) {

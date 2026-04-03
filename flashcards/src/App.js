@@ -1,4 +1,3 @@
-// src/App.js
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import AuthForm from "./AuthForm";
@@ -13,9 +12,13 @@ function App() {
   const [userEmail, setUserEmail] = useState(
     localStorage.getItem("userEmail") || ""
   );
+
+  // ✅ Initialize from localStorage but always revalidate from /me
   const [isPro, setIsPro] = useState(
     JSON.parse(localStorage.getItem("isPro") || "false")
   );
+
+
 
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
@@ -58,7 +61,7 @@ function App() {
   }
 
   
-  async function api(path, options = {}) {
+ async function api(path, options = {}) {
     const res = await fetch(`${API_URL}${path}`, {
       headers: {
         "Content-Type": "application/json",
@@ -75,7 +78,7 @@ function App() {
     return data;
   }
 
-  async function loadMe(authToken = token) {
+ async function loadMe(authToken = token) {
     if (!authToken) return;
 
     try {
@@ -91,17 +94,20 @@ function App() {
 
       if (!res.ok) throw new Error(data.error || "Failed to load user");
 
-      setUserEmail(data.user?.email || "");
-      setIsPro(!!data.user?.is_pro);
+      const email = data.user?.email || "";
+      const pro = !!data.user?.is_pro; // ← backend maps user_metadata.is_pro to is_pro
 
-      localStorage.setItem("userEmail", data.user?.email || "");
-      localStorage.setItem("isPro", JSON.stringify(!!data.user?.is_pro));
+      setUserEmail(email);
+      setIsPro(pro);
+
+      localStorage.setItem("userEmail", email);
+      localStorage.setItem("isPro", JSON.stringify(pro));
     } catch (err) {
       console.error("loadMe error:", err.message);
     }
   }
 
-  async function handleAuth(e) {
+ async function handleAuth(e) {
     e.preventDefault();
     setError("");
     setLoading(true);
