@@ -243,10 +243,6 @@ app.post("/auth/signup", async (req, res) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
 
-    // if (data.user) {
-    //   await ensureProfile(data.user);
-    // }
-
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("is_pro")
@@ -264,7 +260,6 @@ app.post("/auth/signup", async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-
 // Login
 app.post("/auth/login", async (req, res) => {
   try {
