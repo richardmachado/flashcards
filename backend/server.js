@@ -130,7 +130,7 @@ console.log({ data, error });
 app.use(express.json());
 
 // AI route
-app.post("/ai/test-generate-cards", async (req, res) => {
+app.post("/ai/test-generate-cards", requireUser, async (req, res) => {
   const { text } = req.body;
 
   if (!text || text.trim().length < 30) {
@@ -140,6 +140,28 @@ app.post("/ai/test-generate-cards", async (req, res) => {
   }
 
   try {
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("is_pro, ai_generations_used, ai_free_limit")
+      .eq("id", req.user.id)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+
+    const isPro = !!profile?.is_pro;
+    const used = profile?.ai_generations_used ?? 0;
+    const freeLimit = profile?.ai_free_limit ?? 3;
+
+    if (!isPro && used >= freeLimit) {
+      return res.status(403).json({
+        error: "You’ve used all 3 free AI generations. Upgrade to Pro to keep generating cards.",
+        is_pro: false,
+        ai_generations_used: used,
+        ai_free_limit: freeLimit,
+        ai_remaining: 0,
+      });
+    }
+
     const systemPrompt = `
 You convert study material into flashcards for active recall.
 Return STRICT JSON only, with this shape:
@@ -183,7 +205,28 @@ Keep questions short and concrete. Max 10 cards.
       });
     }
 
-    res.json({ cards: parsed.cards });
+    let nextUsed = used;
+
+    if (!isPro) {
+      nextUsed = used + 1;
+
+      const { error: updateError } = await supabaseAdmin
+        .from("profiles")
+        .update({ ai_generations_used: nextUsed })
+        .eq("id", req.user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+    }
+
+    res.json({
+      cards: parsed.cards,
+      is_pro: isPro,
+      ai_generations_used: nextUsed,
+      ai_free_limit: freeLimit,
+      ai_remaining: isPro ? null : Math.max(0, freeLimit - nextUsed),
+    });
   } catch (err) {
     console.error("DeepSeek error:", err.response?.data || err.message);
     res.status(500).json({ error: "DeepSeek request failed." });
@@ -342,6 +385,8 @@ app.get("/debug/profile-direct", async (req, res) => {
   });
 });
 
+
+
 // Me
 app.get("/me", requireUser, async (req, res) => {
   try {
@@ -349,7 +394,7 @@ app.get("/me", requireUser, async (req, res) => {
 
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, is_pro, stripe_customer_id")
+      .select("id, is_pro, stripe_customer_id, ai_generations_used, ai_free_limit")
       .eq("id", req.user.id)
       .maybeSingle();
 
@@ -359,9 +404,10 @@ app.get("/me", requireUser, async (req, res) => {
       user: {
         id: req.user.id,
         email: req.user.email,
-        // ✅ use profiles.is_pro as the source of truth
         is_pro: !!profile?.is_pro,
         stripe_customer_id: profile?.stripe_customer_id || null,
+        ai_generations_used: profile?.ai_generations_used ?? 0,
+        ai_free_limit: profile?.ai_free_limit ?? 3,
       },
     });
   } catch (err) {
@@ -384,9 +430,6 @@ app.post("/billing/create-checkout-session", requireUser, async (req, res) => {
     const successUrl = `${FRONTEND_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${FRONTEND_URL}/billing/cancel`;
 
-    console.log("FRONTEND_URL =", JSON.stringify(FRONTEND_URL));
-    console.log("successUrl =", JSON.stringify(successUrl));
-    console.log("cancelUrl =", JSON.stringify(cancelUrl));
 
     const sessionPayload = {
       mode: "subscription",
@@ -539,15 +582,6 @@ app.listen(PORT, () => {
   console.log(`Flashcard backend running on http://localhost:${PORT}`);
 });
 
-console.log("SUPABASE_URL =", process.env.SUPABASE_URL);
-console.log(
-  "SERVICE ROLE PRESENT =",
-  !!process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-console.log(
-  "SERVICE ROLE PREFIX =",
-  process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20)
-);
 
 app.get("/debug/clients", async (req, res) => {
   const anonResult = await supabase
