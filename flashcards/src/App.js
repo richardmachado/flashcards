@@ -8,85 +8,62 @@ import StudyView from "./StudyView";
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:4000";
 
 function App() {
+  // Auth / user
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [userEmail, setUserEmail] = useState(
     localStorage.getItem("userEmail") || ""
   );
-
-  // ✅ Initialize from localStorage but always revalidate from /me
   const [isPro, setIsPro] = useState(
     JSON.parse(localStorage.getItem("isPro") || "false")
   );
 
-
-
+  // Auth form
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // Data
   const [cards, setCards] = useState([]);
-  const [front, setFront] = useState("");
-  const [back, setBack] = useState("");
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
   const [decks, setDecks] = useState([]);
   const [selectedDeckId, setSelectedDeckId] = useState("");
 
+  // Create / edit card
+  const [front, setFront] = useState("");
+  const [back, setBack] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editFront, setEditFront] = useState("");
   const [editBack, setEditBack] = useState("");
 
+  // UI / status
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [view, setView] = useState("manage");
+
+  // Study
   const [studyIndex, setStudyIndex] = useState(0);
   const [showBack, setShowBack] = useState(false);
-  const [view, setView] = useState("manage");
   const [transitionDir, setTransitionDir] = useState("none");
+  const [shuffledIndices, setShuffledIndices] = useState([]);
+  const [isShuffled, setIsShuffled] = useState(false);
 
+  // Quiz
+  const [studyMode, setStudyMode] = useState("flashcards"); // "flashcards" | "quiz"
+  const [quizOptions, setQuizOptions] = useState([]);
+  const [selectedAnswer, setSelectedAnswer] = useState("");
+  const [quizFeedback, setQuizFeedback] = useState("");
+  const [quizScore, setQuizScore] = useState(0);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [quizTotal, setQuizTotal] = useState(0);
+
+  // AI
   const [aiSourceText, setAiSourceText] = useState("");
   const [aiGeneratedCards, setAiGeneratedCards] = useState([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
-
-  const [shuffledIndices, setShuffledIndices] = useState([]);
-  const [isShuffled, setIsShuffled] = useState(false);
-
   const [aiGenerationsUsed, setAiGenerationsUsed] = useState(0);
   const [aiFreeLimit, setAiFreeLimit] = useState(3);
 
-  async function loadMe(authToken = token) {
-  if (!authToken) return;
-
-  try {
-    const res = await fetch(`${API_URL}/me`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
-
-    const data = await res.json();
-    console.log("/me response:", data);
-
-    if (!res.ok) throw new Error(data.error || "Failed to load user");
-
-    const email = data.user?.email || "";
-    const pro = !!data.user?.is_pro;
-    const used = data.user?.ai_generations_used ?? 0;
-    const limit = data.user?.ai_free_limit ?? 3;
-
-    setUserEmail(email);
-    setIsPro(pro);
-    setAiGenerationsUsed(used);
-    setAiFreeLimit(limit);
-
-    localStorage.setItem("userEmail", email);
-    localStorage.setItem("isPro", JSON.stringify(pro));
-  } catch (err) {
-    console.error("loadMe error:", err.message);
-  }
-}
-
+  // ---------- helpers that don't depend on derived values ----------
 
   function shuffleArray(arr) {
     const copy = [...arr];
@@ -97,8 +74,25 @@ function App() {
     return copy;
   }
 
-  
- async function api(path, options = {}) {
+  function buildQuizOptions(card, allCards) {
+    if (!card || allCards.length < 4) return [];
+
+    const correct = card.back;
+
+    const wrongAnswers = allCards
+      .filter((c) => c.id !== card.id && c.back && c.back !== correct)
+      .map((c) => c.back);
+
+    const uniqueWrongAnswers = [...new Set(wrongAnswers)];
+    if (uniqueWrongAnswers.length < 3) return [];
+
+    const shuffledWrong = shuffleArray(uniqueWrongAnswers);
+    const options = [correct, ...shuffledWrong.slice(0, 3)];
+
+    return shuffleArray(options);
+  }
+
+  async function api(path, options = {}) {
     const res = await fetch(`${API_URL}${path}`, {
       headers: {
         "Content-Type": "application/json",
@@ -115,8 +109,179 @@ function App() {
     return data;
   }
 
+  async function loadMe(authToken = token) {
+    if (!authToken) return;
 
- async function handleAuth(e) {
+    try {
+      const res = await fetch(`${API_URL}/me`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      const data = await res.json();
+      console.log("/me response:", data);
+
+      if (!res.ok) throw new Error(data.error || "Failed to load user");
+
+      const email = data.user?.email || "";
+      const pro = !!data.user?.is_pro;
+      const used = data.user?.ai_generations_used ?? 0;
+      const limit = data.user?.ai_free_limit ?? 3;
+
+      setUserEmail(email);
+      setIsPro(pro);
+      setAiGenerationsUsed(used);
+      setAiFreeLimit(limit);
+
+      localStorage.setItem("userEmail", email);
+      localStorage.setItem("isPro", JSON.stringify(pro));
+    } catch (err) {
+      console.error("loadMe error:", err.message);
+    }
+  }
+
+  // ---------- derived values that depend on cards/decks ----------
+
+  const studyCards = cards.filter(
+    (card) => !selectedDeckId || card.deck_id === selectedDeckId
+  );
+
+  const currentIndex =
+    isShuffled && shuffledIndices.length === studyCards.length
+      ? shuffledIndices[studyIndex]
+      : studyIndex;
+
+  const currentCard = studyCards[currentIndex];
+
+  const aiRemaining = Math.max(0, aiFreeLimit - aiGenerationsUsed);
+  const anySelected = aiGeneratedCards.some((c) => c.selected);
+
+  // ---------- quiz handlers (now can safely use studyCards/currentCard) ----------
+
+function startQuiz() {
+  if (studyCards.length < 4) return;
+
+  setStudyMode("quiz");
+  setStudyIndex(0);
+  setShowBack(false);
+  setTransitionDir("none");
+  setIsShuffled(false);
+  setShuffledIndices([]);
+
+  setSelectedAnswer("");
+  setQuizFeedback("");
+  setQuizScore(0);
+  setQuizCompleted(false);
+  setQuizTotal(studyCards.length);
+
+  const firstCard = studyCards[0];
+  setQuizOptions(buildQuizOptions(firstCard, studyCards));
+}
+
+function handleQuizAnswer(answer) {
+  if (!currentCard || selectedAnswer || quizCompleted) return;
+
+  setSelectedAnswer(answer);
+
+  if (answer === currentCard.back) {
+    setQuizFeedback("Correct!");
+    setQuizScore((s) => s + 1);
+  } else {
+    setQuizFeedback(`Incorrect. Correct answer: ${currentCard.back}`);
+  }
+}
+
+function nextQuizQuestion() {
+  if (studyCards.length === 0 || !selectedAnswer) return;
+
+  const isLastQuestion = studyIndex >= studyCards.length - 1;
+
+  if (isLastQuestion) {
+    setQuizCompleted(true);
+    setQuizFeedback("");
+    return;
+  }
+
+  const nextIndex = studyIndex + 1;
+  const nextCard = studyCards[nextIndex];
+
+  setStudyIndex(nextIndex);
+  setSelectedAnswer("");
+  setQuizFeedback("");
+  setQuizOptions(buildQuizOptions(nextCard, studyCards));
+}
+
+  function startStudy() {
+    if (studyCards.length === 0) return;
+
+    setStudyMode("flashcards");
+    setStudyIndex(0);
+    setShowBack(false);
+    setTransitionDir("none");
+    setIsShuffled(false);
+    setShuffledIndices([]);
+
+    // clear quiz UI so it doesn't show in flashcards
+    setSelectedAnswer("");
+    setQuizFeedback("");
+    setQuizCompleted(false);
+    setQuizScore(0);
+  }
+
+  function startShuffle() {
+    if (studyCards.length === 0) return;
+    const indices = shuffleArray(studyCards.map((_, i) => i));
+    setShuffledIndices(indices);
+    setIsShuffled(true);
+    setStudyIndex(0);
+    setShowBack(false);
+    setTransitionDir("none");
+  }
+
+  function stopShuffle() {
+    if (!isShuffled || studyCards.length === 0) {
+      setIsShuffled(false);
+      setShuffledIndices([]);
+      return;
+    }
+
+    const idx =
+      shuffledIndices.length === studyCards.length
+        ? shuffledIndices[studyIndex]
+        : studyIndex;
+
+    setIsShuffled(false);
+    setShuffledIndices([]);
+    setStudyIndex(idx);
+    setShowBack(false);
+    setTransitionDir("none");
+  }
+
+  function nextCard() {
+    if (studyCards.length === 0) return;
+    setShowBack(false);
+    setStudyIndex((prev) => (prev + 1) % studyCards.length);
+    setTransitionDir("right");
+    setTimeout(() => setTransitionDir("none"), 260);
+  }
+
+  function prevCard() {
+    if (studyCards.length === 0) return;
+    setShowBack(false);
+    setStudyIndex((prev) => (prev - 1 + studyCards.length) % studyCards.length);
+    setTransitionDir("left");
+    setTimeout(() => setTransitionDir("none"), 260);
+  }
+
+  function flipCard() {
+    setShowBack((prev) => !prev);
+  }
+
+  // ---------- auth / CRUD handlers ----------
+
+  async function handleAuth(e) {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -172,25 +337,6 @@ function App() {
     }
   }
 
-  useEffect(() => {
-    if (token) {
-      loadMe(token);
-      loadDecks();
-      loadCards();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
-
-  const studyCards = cards.filter(
-    (card) => !selectedDeckId || card.deck_id === selectedDeckId
-  );
-
-  useEffect(() => {
-    setStudyIndex(0);
-    setShowBack(false);
-    setTransitionDir("none");
-  }, [studyCards.length, selectedDeckId]);
-
   async function handleCreateCard(e) {
     e.preventDefault();
     if (!front.trim() || !back.trim() || !selectedDeckId) return;
@@ -218,37 +364,35 @@ function App() {
     }
   }
 
- async function handleGenerateFromText(e) {
-  e.preventDefault();
-  if (!aiSourceText.trim() || !selectedDeckId) return;
+  async function handleGenerateFromText(e) {
+    e.preventDefault();
+    if (!aiSourceText.trim() || !selectedDeckId) return;
 
-  setAiError("");
-  setAiLoading(true);
+    setAiError("");
+    setAiLoading(true);
 
-  try {
-    const data = await api("/ai/test-generate-cards", {
-      method: "POST",
-      body: JSON.stringify({ text: aiSourceText }),
-    });
+    try {
+      const data = await api("/ai/test-generate-cards", {
+        method: "POST",
+        body: JSON.stringify({ text: aiSourceText }),
+      });
 
-    const newCards = Array.isArray(data.cards) ? data.cards : [];
-    setAiGeneratedCards(newCards.map((c) => ({ ...c, selected: true })));
+      const newCards = Array.isArray(data.cards) ? data.cards : [];
+      setAiGeneratedCards(newCards.map((c) => ({ ...c, selected: true })));
 
-    if (typeof data.ai_generations_used === "number") {
-      setAiGenerationsUsed(data.ai_generations_used);
+      if (typeof data.ai_generations_used === "number") {
+        setAiGenerationsUsed(data.ai_generations_used);
+      }
+      if (typeof data.ai_free_limit === "number") {
+        setAiFreeLimit(data.ai_free_limit);
+      }
+    } catch (err) {
+      setAiError(err.message);
+      setAiGeneratedCards([]);
+    } finally {
+      setAiLoading(false);
     }
-    if (typeof data.ai_free_limit === "number") {
-      setAiFreeLimit(data.ai_free_limit);
-    }
-  } catch (err) {
-    setAiError(err.message);
-    setAiGeneratedCards([]);
-  } finally {
-    setAiLoading(false);
   }
-}
-
-const aiRemaining = Math.max(0, aiFreeLimit - aiGenerationsUsed);
 
   async function handleSaveGeneratedCards() {
     const toSave = aiGeneratedCards.filter((c) => c.selected);
@@ -328,64 +472,6 @@ const aiRemaining = Math.max(0, aiFreeLimit - aiGenerationsUsed);
     }
   }
 
-  function startStudy() {
-    if (studyCards.length === 0) return;
-    setStudyIndex(0);
-    setShowBack(false);
-    setTransitionDir("none");
-    setIsShuffled(false);
-    setShuffledIndices([]);
-  }
-
-  function startShuffle() {
-    if (studyCards.length === 0) return;
-    const indices = shuffleArray(studyCards.map((_, i) => i));
-    setShuffledIndices(indices);
-    setIsShuffled(true);
-    setStudyIndex(0);
-    setShowBack(false);
-    setTransitionDir("none");
-  }
-
-  function stopShuffle() {
-    if (!isShuffled || studyCards.length === 0) {
-      setIsShuffled(false);
-      setShuffledIndices([]);
-      return;
-    }
-
-    const idx =
-      shuffledIndices.length === studyCards.length
-        ? shuffledIndices[studyIndex]
-        : studyIndex;
-
-    setIsShuffled(false);
-    setShuffledIndices([]);
-    setStudyIndex(idx);
-    setShowBack(false);
-    setTransitionDir("none");
-  }
-
-  function nextCard() {
-    if (studyCards.length === 0) return;
-    setShowBack(false);
-    setStudyIndex((prev) => (prev + 1) % studyCards.length);
-    setTransitionDir("right");
-    setTimeout(() => setTransitionDir("none"), 260);
-  }
-
-  function prevCard() {
-    if (studyCards.length === 0) return;
-    setShowBack(false);
-    setStudyIndex((prev) => (prev - 1 + studyCards.length) % studyCards.length);
-    setTransitionDir("left");
-    setTimeout(() => setTransitionDir("none"), 260);
-  }
-
-  function flipCard() {
-    setShowBack((prev) => !prev);
-  }
-
   async function handleUpgrade() {
     try {
       const res = await api("/billing/create-checkout-session", {
@@ -409,14 +495,44 @@ const aiRemaining = Math.max(0, aiFreeLimit - aiGenerationsUsed);
     setView("manage");
   }
 
-  const anySelected = aiGeneratedCards.some((c) => c.selected);
+  // ---------- effects ----------
 
-  const currentIndex =
-    isShuffled && shuffledIndices.length === studyCards.length
-      ? shuffledIndices[studyIndex]
-      : studyIndex;
+  useEffect(() => {
+    if (token) {
+      loadMe(token);
+      loadDecks();
+      loadCards();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
-  const currentCard = studyCards[currentIndex];
+  useEffect(() => {
+  if (studyMode !== "quiz") return;
+
+  setStudyIndex(0);
+  setSelectedAnswer("");
+  setQuizFeedback("");
+  setQuizScore(0);
+  setQuizCompleted(false);
+  setQuizTotal(studyCards.length);
+
+  if (studyCards.length >= 4) {
+    setQuizOptions(buildQuizOptions(studyCards[0], studyCards));
+  } else {
+    setQuizOptions([]);
+  }
+}, []);
+
+  useEffect(() => {
+    setStudyIndex(0);
+    setShowBack(false);
+    setTransitionDir("none");
+  }, [studyCards.length, selectedDeckId]);
+
+
+
+  // ---------- render ----------
+
   const path = window.location.pathname;
 
   if (path === "/billing/success") {
@@ -524,45 +640,45 @@ const aiRemaining = Math.max(0, aiFreeLimit - aiGenerationsUsed);
           {view === "manage" && (
             <ManageView
               decks={decks}
-  selectedDeckId={selectedDeckId}
-  setSelectedDeckId={setSelectedDeckId}
-  onCreateDeck={async (name) => {
-    await api("/decks", {
-      method: "POST",
-      body: JSON.stringify({ name }),
-    });
-    await loadDecks();
-  }}
-  cards={cards}
-  front={front}
-  back={back}
-  setFront={setFront}
-  setBack={setBack}
-  loading={loading}
-  error={error}
-  onCreateCard={handleCreateCard}
-  editingId={editingId}
-  editFront={editFront}
-  editBack={editBack}
-  setEditFront={setEditFront}
-  setEditBack={setEditBack}
-  onStartEdit={startEdit}
-  onSaveEdit={handleSaveEdit}
-  onDeleteCard={handleDeleteCard}
-  aiSourceText={aiSourceText}
-  setAiSourceText={setAiSourceText}
-  aiError={aiError}
-  aiLoading={aiLoading}
-  aiGeneratedCards={aiGeneratedCards}
-  setAiGeneratedCards={setAiGeneratedCards}
-  anySelected={anySelected}
-  onGenerate={handleGenerateFromText}
-  onSaveGenerated={handleSaveGeneratedCards}
-  isPro={isPro}
-  aiGenerationsUsed={aiGenerationsUsed}
-  aiFreeLimit={aiFreeLimit}
-  aiRemaining={aiRemaining}
-  onUpgrade={handleUpgrade}
+              selectedDeckId={selectedDeckId}
+              setSelectedDeckId={setSelectedDeckId}
+              onCreateDeck={async (name) => {
+                await api("/decks", {
+                  method: "POST",
+                  body: JSON.stringify({ name }),
+                });
+                await loadDecks();
+              }}
+              cards={cards}
+              front={front}
+              back={back}
+              setFront={setFront}
+              setBack={setBack}
+              loading={loading}
+              error={error}
+              onCreateCard={handleCreateCard}
+              editingId={editingId}
+              editFront={editFront}
+              editBack={editBack}
+              setEditFront={setEditFront}
+              setEditBack={setEditBack}
+              onStartEdit={startEdit}
+              onSaveEdit={handleSaveEdit}
+              onDeleteCard={handleDeleteCard}
+              aiSourceText={aiSourceText}
+              setAiSourceText={setAiSourceText}
+              aiError={aiError}
+              aiLoading={aiLoading}
+              aiGeneratedCards={aiGeneratedCards}
+              setAiGeneratedCards={setAiGeneratedCards}
+              anySelected={anySelected}
+              onGenerate={handleGenerateFromText}
+              onSaveGenerated={handleSaveGeneratedCards}
+              isPro={isPro}
+              aiGenerationsUsed={aiGenerationsUsed}
+              aiFreeLimit={aiFreeLimit}
+              aiRemaining={aiRemaining}
+              onUpgrade={handleUpgrade}
             />
           )}
 
@@ -584,6 +700,16 @@ const aiRemaining = Math.max(0, aiFreeLimit - aiGenerationsUsed);
               onShuffle={startShuffle}
               onUnshuffle={stopShuffle}
               currentCard={currentCard}
+              studyMode={studyMode}
+              onStartQuiz={startQuiz}
+              quizOptions={quizOptions}
+              selectedAnswer={selectedAnswer}
+              quizFeedback={quizFeedback}
+              onQuizAnswer={handleQuizAnswer}
+              onNextQuiz={nextQuizQuestion}
+              quizScore={quizScore}
+              quizCompleted={quizCompleted}
+              quizTotal={quizTotal}
             />
           )}
         </>

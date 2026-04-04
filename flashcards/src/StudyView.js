@@ -16,9 +16,21 @@ function StudyView({
   onFlip,
   onStartStudy,
   onShuffle,
-  onUnshuffle,  
+  onUnshuffle,
   currentCard,
+  studyMode,
+  onStartQuiz,
+  quizOptions,
+  selectedAnswer,
+  quizFeedback,
+  onQuizAnswer,
+  onNextQuiz,
+  quizScore,
+  quizCompleted,
+  quizTotal,
 }) {
+  const canQuiz = studyCards.length >= 4;
+
   return (
     <div className="card-block">
       <h2 className="section-title">Study mode</h2>
@@ -47,84 +59,252 @@ function StudyView({
         </div>
       ) : (
         <>
-          <div className="study-card-wrapper">
+          <div className="study-controls" style={{ marginBottom: "1rem" }}>
             <button
               type="button"
-              onClick={onPrev}
-              className="study-nav-button"
+              className={
+                "btn btn-small " +
+                (studyMode === "flashcards" ? "btn-primary" : "btn-gray")
+              }
+              onClick={onStartStudy}
             >
-              ⟨
+              Flashcards
             </button>
 
-           {currentCard && (
+            <button
+              type="button"
+              className={
+                "btn btn-small " +
+                (studyMode === "quiz" ? "btn-primary" : "btn-gray")
+              }
+              onClick={onStartQuiz}
+              disabled={!canQuiz}
+            >
+              Quiz mode
+            </button>
+          </div>
+
+          {!canQuiz && (
+            <div className="muted-text" style={{ marginBottom: "1rem" }}>
+              Quiz mode requires at least 4 cards in this deck.
+            </div>
+          )}
+
+          {studyMode === "quiz" ? (
+            currentCard && quizOptions.length > 0 ? (
+              <>
+                <div
+                  className="study-card-wrapper"
+                  style={{ display: "block" }}
+                >
+                  <div
+                    className="study-card-face-header"
+                    style={{ marginBottom: "1rem" }}
+                  >
+                    Question {studyIndex + 1} of {studyCards.length}
+                  </div>
+
+                  <div
+                    className="study-card"
+                    style={{
+                      cursor: "default",
+                      minHeight: "auto",
+                      transform: "none",
+                    }}
+                  >
+                    <div
+                      className="study-card-face study-card-front"
+                      style={{
+                        position: "relative",
+                        transform: "none",
+                        backfaceVisibility: "visible",
+                      }}
+                    >
+                      <div className="study-card-inner">
+                        <div className="study-card-face-body">
+                          {currentCard.front}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: "1.25rem" }}>
+                  {quizOptions.map((option, idx) => {
+                    const isCorrect = option === currentCard.back;
+                    const isPicked = option === selectedAnswer;
+
+                    let className = "btn btn-gray";
+                    if (selectedAnswer && isCorrect) className = "btn btn-success";
+                    if (selectedAnswer && isPicked && !isCorrect) {
+                      className = "btn btn-danger";
+                    }
+
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        className={className}
+                        onClick={() => onQuizAnswer(option)}
+                        disabled={!!selectedAnswer}
+                        style={{
+                          width: "100%",
+                          marginBottom: "0.75rem",
+                          textAlign: "left",
+                        }}
+                      >
+                        {option}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {quizFeedback && (
+                  <div
+                    className="muted-text"
+                    style={{ marginTop: "0.75rem", marginBottom: "1rem" }}
+                  >
+                    {quizFeedback}
+                  </div>
+                )}
+
+                <div className="study-controls">
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-small"
+                    onClick={onNextQuiz}
+                    disabled={!selectedAnswer || quizCompleted}
+                  >
+                    {quizCompleted ? "Quiz finished" : "Next question"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-gray btn-small study-restart"
+                    onClick={onStartQuiz}
+                  >
+                    Restart quiz
+                  </button>
+                </div>
+
+ {quizCompleted && (
+  <div
+    className="quiz-result-box"
+    style={{
+      marginTop: "1.25rem",
+      padding: "1rem 1.25rem",
+      borderRadius: "8px",
+      border: "1px solid var(--border-subtle, #d0d7de)",
+      backgroundColor: "var(--bg-subtle, #f6f8fa)",
+      textAlign: "center",
+    }}
+  >
     <div
-      className={
-        "study-card" +
-        (showBack ? " flip" : "") +
-        (transitionDir !== "none" ? " slide-in" : "")
-      }
-      onClick={onFlip}
+      style={{
+        fontSize: "1.1rem",
+        fontWeight: 600,
+        marginBottom: "0.25rem",
+      }}
     >
-      <div className="study-card-face study-card-front">
-        <div className="study-card-inner">
-          <div className="study-card-face-header">
-            {/* use currentIndex instead of studyIndex */}
-            Card {currentIndex + 1} of {studyCards.length}
-          </div>
-          <div className="study-card-face-body">
-            {currentCard.front}
-          </div>
-        </div>
-      </div>
-
-      <div className="study-card-face study-card-back">
-        <div className="study-card-inner">
-          <div className="study-card-face-header">
-            Card {currentIndex + 1} of {studyCards.length}
-          </div>
-          <div className="study-card-face-body">
-            {currentCard.back}
-          </div>
-        </div>
-      </div>
+      Quiz finished
     </div>
-  )}
-
-            <button
-              type="button"
-              onClick={onNext}
-              className="study-nav-button"
-            >
-              ⟩
-            </button>
-            
-          </div>
-
-        <div className="study-controls">
-    <button
-      type="button"
-      className={
-        "btn btn-small " + (isShuffled ? "btn-primary" : "btn-ghost")
-      }
-      onClick={isShuffled ? onUnshuffle : onShuffle}
-    >
-      {isShuffled ? "Shuffle On" : "Shuffle Off"}
-    </button>
-    <button
-      type="button"
-      className="btn btn-primary btn-small"
-      onClick={onFlip}
-    >
-      {showBack ? "Show front" : "Show back"}
-    </button>
-    <button
-      type="button"
-      className="btn btn-gray btn-small study-restart"
-      onClick={onStartStudy}
-    >
-      Restart
-    </button>
+    <div style={{ fontSize: "1.05rem", marginBottom: "0.25rem" }}>
+      You scored <strong>{quizScore}</strong> out of{" "}
+      <strong>{quizTotal}</strong>.
+    </div>
+    <div className="muted-text" style={{ fontSize: "0.95rem" }}>
+      {quizScore / Math.max(quizTotal, 1) >= 0.8
+        ? "Great job!"
+        : "Keep practicing and you’ll improve!"}
+    </div>
   </div>
+)}
+              </>
+            ) : (
+              <div className="muted-text">
+                Not enough unique answers in this deck for quiz mode.
+              </div>
+            )
+          ) : (
+            <>
+              <div className="study-card-wrapper">
+                <button
+                  type="button"
+                  onClick={onPrev}
+                  className="study-nav-button"
+                >
+                  ⟨
+                </button>
+
+                {currentCard && (
+                  <div
+                    className={
+                      "study-card" +
+                      (showBack ? " flip" : "") +
+                      (transitionDir !== "none" ? " slide-in" : "")
+                    }
+                    onClick={onFlip}
+                  >
+                    <div className="study-card-face study-card-front">
+                      <div className="study-card-inner">
+                        <div className="study-card-face-header">
+                          Card {currentIndex + 1} of {studyCards.length}
+                        </div>
+                        <div className="study-card-face-body">
+                          {currentCard.front}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="study-card-face study-card-back">
+                      <div className="study-card-inner">
+                        <div className="study-card-face-header">
+                          Card {currentIndex + 1} of {studyCards.length}
+                        </div>
+                        <div className="study-card-face-body">
+                          {currentCard.back}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={onNext}
+                  className="study-nav-button"
+                >
+                  ⟩
+                </button>
+              </div>
+
+              <div className="study-controls">
+                <button
+                  type="button"
+                  className={
+                    "btn btn-small " +
+                    (isShuffled ? "btn-primary" : "btn-ghost")
+                  }
+                  onClick={isShuffled ? onUnshuffle : onShuffle}
+                >
+                  {isShuffled ? "Shuffle On" : "Shuffle Off"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-small"
+                  onClick={onFlip}
+                >
+                  {showBack ? "Show front" : "Show back"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-gray btn-small study-restart"
+                  onClick={onStartStudy}
+                >
+                  Restart
+                </button>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
