@@ -51,6 +51,43 @@ function App() {
   const [shuffledIndices, setShuffledIndices] = useState([]);
   const [isShuffled, setIsShuffled] = useState(false);
 
+  const [aiGenerationsUsed, setAiGenerationsUsed] = useState(0);
+  const [aiFreeLimit, setAiFreeLimit] = useState(3);
+
+  async function loadMe(authToken = token) {
+  if (!authToken) return;
+
+  try {
+    const res = await fetch(`${API_URL}/me`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    const data = await res.json();
+    console.log("/me response:", data);
+
+    if (!res.ok) throw new Error(data.error || "Failed to load user");
+
+    const email = data.user?.email || "";
+    const pro = !!data.user?.is_pro;
+    const used = data.user?.ai_generations_used ?? 0;
+    const limit = data.user?.ai_free_limit ?? 3;
+
+    setUserEmail(email);
+    setIsPro(pro);
+    setAiGenerationsUsed(used);
+    setAiFreeLimit(limit);
+
+    localStorage.setItem("userEmail", email);
+    localStorage.setItem("isPro", JSON.stringify(pro));
+  } catch (err) {
+    console.error("loadMe error:", err.message);
+  }
+}
+
+
   function shuffleArray(arr) {
     const copy = [...arr];
     for (let i = copy.length - 1; i > 0; i--) {
@@ -78,34 +115,6 @@ function App() {
     return data;
   }
 
- async function loadMe(authToken = token) {
-    if (!authToken) return;
-
-    try {
-      const res = await fetch(`${API_URL}/me`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
-
-      const data = await res.json();
-      console.log("/me response:", data);
-
-      if (!res.ok) throw new Error(data.error || "Failed to load user");
-
-      const email = data.user?.email || "";
-      const pro = !!data.user?.is_pro; // ← backend maps user_metadata.is_pro to is_pro
-
-      setUserEmail(email);
-      setIsPro(pro);
-
-      localStorage.setItem("userEmail", email);
-      localStorage.setItem("isPro", JSON.stringify(pro));
-    } catch (err) {
-      console.error("loadMe error:", err.message);
-    }
-  }
 
  async function handleAuth(e) {
     e.preventDefault();
@@ -209,28 +218,37 @@ function App() {
     }
   }
 
-  async function handleGenerateFromText(e) {
-    e.preventDefault();
-    if (!aiSourceText.trim() || !selectedDeckId) return;
+ async function handleGenerateFromText(e) {
+  e.preventDefault();
+  if (!aiSourceText.trim() || !selectedDeckId) return;
 
-    setAiError("");
-    setAiLoading(true);
+  setAiError("");
+  setAiLoading(true);
 
-    try {
-      const data = await api("/ai/test-generate-cards", {
-        method: "POST",
-        body: JSON.stringify({ text: aiSourceText }),
-      });
+  try {
+    const data = await api("/ai/test-generate-cards", {
+      method: "POST",
+      body: JSON.stringify({ text: aiSourceText }),
+    });
 
-      const newCards = Array.isArray(data.cards) ? data.cards : [];
-      setAiGeneratedCards(newCards.map((c) => ({ ...c, selected: true })));
-    } catch (err) {
-      setAiError(err.message);
-      setAiGeneratedCards([]);
-    } finally {
-      setAiLoading(false);
+    const newCards = Array.isArray(data.cards) ? data.cards : [];
+    setAiGeneratedCards(newCards.map((c) => ({ ...c, selected: true })));
+
+    if (typeof data.ai_generations_used === "number") {
+      setAiGenerationsUsed(data.ai_generations_used);
     }
+    if (typeof data.ai_free_limit === "number") {
+      setAiFreeLimit(data.ai_free_limit);
+    }
+  } catch (err) {
+    setAiError(err.message);
+    setAiGeneratedCards([]);
+  } finally {
+    setAiLoading(false);
   }
+}
+
+const aiRemaining = Math.max(0, aiFreeLimit - aiGenerationsUsed);
 
   async function handleSaveGeneratedCards() {
     const toSave = aiGeneratedCards.filter((c) => c.selected);
@@ -506,41 +524,45 @@ function App() {
           {view === "manage" && (
             <ManageView
               decks={decks}
-              selectedDeckId={selectedDeckId}
-              setSelectedDeckId={setSelectedDeckId}
-              onCreateDeck={async (name) => {
-                await api("/decks", {
-                  method: "POST",
-                  body: JSON.stringify({ name }),
-                });
-                await loadDecks();
-              }}
-              cards={cards}
-              front={front}
-              back={back}
-              setFront={setFront}
-              setBack={setBack}
-              loading={loading}
-              error={error}
-              onCreateCard={handleCreateCard}
-              editingId={editingId}
-              editFront={editFront}
-              editBack={editBack}
-              setEditFront={setEditFront}
-              setEditBack={setEditBack}
-              onStartEdit={startEdit}
-              onSaveEdit={handleSaveEdit}
-              onDeleteCard={handleDeleteCard}
-              aiSourceText={aiSourceText}
-              setAiSourceText={setAiSourceText}
-              aiError={aiError}
-              aiLoading={aiLoading}
-              aiGeneratedCards={aiGeneratedCards}
-              setAiGeneratedCards={setAiGeneratedCards}
-              anySelected={anySelected}
-              onGenerate={handleGenerateFromText}
-              onSaveGenerated={handleSaveGeneratedCards}
-              isPro={isPro}
+  selectedDeckId={selectedDeckId}
+  setSelectedDeckId={setSelectedDeckId}
+  onCreateDeck={async (name) => {
+    await api("/decks", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+    await loadDecks();
+  }}
+  cards={cards}
+  front={front}
+  back={back}
+  setFront={setFront}
+  setBack={setBack}
+  loading={loading}
+  error={error}
+  onCreateCard={handleCreateCard}
+  editingId={editingId}
+  editFront={editFront}
+  editBack={editBack}
+  setEditFront={setEditFront}
+  setEditBack={setEditBack}
+  onStartEdit={startEdit}
+  onSaveEdit={handleSaveEdit}
+  onDeleteCard={handleDeleteCard}
+  aiSourceText={aiSourceText}
+  setAiSourceText={setAiSourceText}
+  aiError={aiError}
+  aiLoading={aiLoading}
+  aiGeneratedCards={aiGeneratedCards}
+  setAiGeneratedCards={setAiGeneratedCards}
+  anySelected={anySelected}
+  onGenerate={handleGenerateFromText}
+  onSaveGenerated={handleSaveGeneratedCards}
+  isPro={isPro}
+  aiGenerationsUsed={aiGenerationsUsed}
+  aiFreeLimit={aiFreeLimit}
+  aiRemaining={aiRemaining}
+  onUpgrade={handleUpgrade}
             />
           )}
 

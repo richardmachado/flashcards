@@ -1,7 +1,7 @@
 import React from "react";
 
 function AIGenerator({
-  aiSourceText,
+ aiSourceText,
   setAiSourceText,
   aiError,
   aiLoading,
@@ -10,6 +10,11 @@ function AIGenerator({
   anySelected,
   onGenerate,
   onSaveGenerated,
+  isPro,
+  aiGenerationsUsed,
+  aiFreeLimit,
+  aiRemaining,
+  onUpgrade,
 }) {
   return (
     <div className="card-block">
@@ -18,6 +23,20 @@ function AIGenerator({
         Paste your notes below, then click <strong>Generate</strong>. Review the
         suggested cards and save them into the selected deck.
       </p>
+
+      {!isPro && (
+        <p className="muted-text">
+          {aiRemaining > 0
+            ? `${aiRemaining} free AI generation${aiRemaining === 1 ? "" : "s"} left (${aiGenerationsUsed}/${aiFreeLimit} used)`
+            : "Free AI limit reached — upgrade to Pro to keep generating cards."}
+        </p>
+      )}
+
+      {isPro && (
+        <p className="muted-text">
+          Pro plan: unlimited AI generations
+        </p>
+      )}
 
       <div className="form-field">
         <label>Source text for this deck</label>
@@ -35,10 +54,21 @@ function AIGenerator({
         type="button"
         className="btn btn-primary"
         onClick={onGenerate}
-        disabled={aiLoading || !aiSourceText.trim()}
+        disabled={aiLoading || !aiSourceText.trim() || (!isPro && aiRemaining <= 0)}
       >
         {aiLoading ? "Generating..." : "Generate cards"}
       </button>
+
+      {!isPro && aiRemaining <= 0 && (
+        <button
+          type="button"
+          className="btn btn-small"
+          onClick={onUpgrade}
+          style={{ marginLeft: "0.75rem" }}
+        >
+          Go Pro
+        </button>
+      )}
 
       {aiGeneratedCards.length > 0 && (
         <>

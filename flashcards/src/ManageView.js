@@ -34,6 +34,11 @@ function ManageView({
   anySelected,
   onGenerate,
   onSaveGenerated,
+  isPro,
+  aiGenerationsUsed,
+  aiFreeLimit,
+  aiRemaining,
+  onUpgrade,
 }) {
   return (
     <>
@@ -67,6 +72,11 @@ function ManageView({
         anySelected={anySelected}
         onGenerate={onGenerate}
         onSaveGenerated={onSaveGenerated}
+        isPro={isPro}
+        aiGenerationsUsed={aiGenerationsUsed}
+        aiFreeLimit={aiFreeLimit}
+        aiRemaining={aiRemaining}
+        onUpgrade={onUpgrade}
       />
 
       <CardList
