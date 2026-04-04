@@ -216,18 +216,34 @@ async function requireUser(req, res, next) {
 
 // Ensure profile row exists
 async function ensureProfile(user) {
-  const { error } = await supabaseAdmin.from("profiles").upsert(
-    [
-      {
-        id: user.id,
-        is_pro: false,
-      },
-    ],
-    { onConflict: "id" }
-  );
+  const { data: existing, error: readError } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
 
-  if (error) {
-    console.error("ensureProfile error:", error);
+  if (readError) {
+    console.error("ensureProfile read error:", readError);
+    return;
+  }
+
+  if (!existing) {
+    const { error: insertError } = await supabaseAdmin
+      .from("profiles")
+      .insert([
+        {
+          id: user.id,
+          is_pro: false,
+        },
+      ]);
+
+    if (insertError) {
+      console.error("ensureProfile insert error:", insertError);
+    } else {
+      console.log("Inserted new profile row for", user.id);
+    }
+  } else {
+    console.log("Profile already exists, not overwriting is_pro for", user.id);
   }
 }
 
@@ -270,6 +286,15 @@ app.post("/auth/login", async (req, res) => {
     if (error) throw error;
 
     await ensureProfile(data.user);
+
+    const { data: afterEnsure, error: afterEnsureError } = await supabaseAdmin
+  .from("profiles")
+  .select("id, is_pro, stripe_customer_id")
+  .eq("id", data.user.id)
+  .maybeSingle();
+
+console.log("AFTER ensureProfile =", afterEnsure);
+console.log("AFTER ensureProfile error =", afterEnsureError);
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
