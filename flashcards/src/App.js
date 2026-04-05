@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback} from "react";
 import "./App.css";
 import AuthForm from "./AuthForm";
 import HeaderBar from "./HeaderBar";
@@ -65,32 +65,33 @@ function App() {
 
   // ---------- helpers that don't depend on derived values ----------
 
-  function shuffleArray(arr) {
-    const copy = [...arr];
-    for (let i = copy.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [copy[i], copy[j]] = [copy[j], copy[i]];
-    }
-    return copy;
+ const shuffleArray = useCallback((arr) => {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
   }
+  return copy;
+}, []);
 
-  function buildQuizOptions(card, allCards) {
-    if (!card || allCards.length < 4) return [];
+  const buildQuizOptions = useCallback((card, allCards) => {
+  if (!card || allCards.length < 4) return [];
 
-    const correct = card.back;
+  const correct = card.back;
 
-    const wrongAnswers = allCards
-      .filter((c) => c.id !== card.id && c.back && c.back !== correct)
-      .map((c) => c.back);
+  const wrongAnswers = allCards
+    .filter((c) => c.id !== card.id && c.back && c.back !== correct)
+    .map((c) => c.back);
 
-    const uniqueWrongAnswers = [...new Set(wrongAnswers)];
-    if (uniqueWrongAnswers.length < 3) return [];
+  const uniqueWrongAnswers = [...new Set(wrongAnswers)];
 
-    const shuffledWrong = shuffleArray(uniqueWrongAnswers);
-    const options = [correct, ...shuffledWrong.slice(0, 3)];
+  if (uniqueWrongAnswers.length < 3) return [];
 
-    return shuffleArray(options);
-  }
+  const shuffledWrong = shuffleArray(uniqueWrongAnswers);
+  const options = [correct, ...shuffledWrong.slice(0, 3)];
+
+  return shuffleArray(options);
+}, [shuffleArray]);
 
   async function api(path, options = {}) {
     const res = await fetch(`${API_URL}${path}`, {
@@ -159,6 +160,34 @@ function App() {
   const anySelected = aiGeneratedCards.some((c) => c.selected);
 
   // ---------- quiz handlers (now can safely use studyCards/currentCard) ----------
+
+
+  function handleStudyDeckChange(newDeckId) {
+  setSelectedDeckId(newDeckId);
+
+  if (studyMode !== "quiz") return;
+
+  const nextStudyCards = cards.filter(
+    (card) => !newDeckId || card.deck_id === newDeckId
+  );
+
+  setStudyIndex(0);
+  setSelectedAnswer("");
+  setQuizFeedback("");
+  setQuizScore(0);
+  setQuizCompleted(false);
+  setQuizTotal(nextStudyCards.length);
+  setShowBack(false);
+  setTransitionDir("none");
+  setIsShuffled(false);
+  setShuffledIndices([]);
+
+  if (nextStudyCards.length >= 4) {
+    setQuizOptions(buildQuizOptions(nextStudyCards[0], nextStudyCards));
+  } else {
+    setQuizOptions([]);
+  }
+}
 
 function startQuiz() {
   if (studyCards.length < 4) return;
@@ -506,22 +535,6 @@ function nextQuizQuestion() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  useEffect(() => {
-  if (studyMode !== "quiz") return;
-
-  setStudyIndex(0);
-  setSelectedAnswer("");
-  setQuizFeedback("");
-  setQuizScore(0);
-  setQuizCompleted(false);
-  setQuizTotal(studyCards.length);
-
-  if (studyCards.length >= 4) {
-    setQuizOptions(buildQuizOptions(studyCards[0], studyCards));
-  } else {
-    setQuizOptions([]);
-  }
-}, []);
 
   useEffect(() => {
     setStudyIndex(0);
@@ -686,7 +699,7 @@ function nextQuizQuestion() {
             <StudyView
               decks={decks}
               selectedDeckId={selectedDeckId}
-              setSelectedDeckId={setSelectedDeckId}
+              setSelectedDeckId={handleStudyDeckChange}
               studyCards={studyCards}
               studyIndex={studyIndex}
               currentIndex={currentIndex}
