@@ -11,53 +11,85 @@ function AuthForm({
   loading,
   onSubmit,
 }) {
-  return (
-    <div className="auth-card">
-      <div className="auth-mode-toggle">
-        <button
-          type="button"
-          className={
-            "btn btn-small " + (mode === "login" ? "btn-primary" : "btn-ghost")
-          }
-          onClick={() => setMode("login")}
-        >
-          Log in
-        </button>
-        <button
-          type="button"
-          className={
-            "btn btn-small " + (mode === "signup" ? "btn-primary" : "btn-ghost")
-          }
-          onClick={() => setMode("signup")}
-        >
-          Sign up
-        </button>
-      </div>
+  const isSignup = mode === "signup";
 
-      <form onSubmit={onSubmit} className="form">
-        <div className="form-field">
-          <label>Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+  return (
+    <div className="auth-flip-scene">
+      <div className={`auth-flip-card ${isSignup ? "flipped" : ""}`}>
+        <div className="auth-face auth-front">
+          <form className="auth-card" onSubmit={onSubmit}>
+            <h2 className="auth-title">Welcome back</h2>
+            <p className="auth-subtext">Log in to keep studying.</p>
+
+            <label>Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+
+            <label>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+
+            {error && <div className="error-text">{error}</div>}
+
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? "Loading..." : "Log in"}
+            </button>
+
+            <button
+              type="button"
+              className="auth-switch"
+              onClick={() => setMode("signup")}
+            >
+              Need an account? Sign up
+            </button>
+          </form>
         </div>
-        <div className="form-field">
-          <label>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+
+        <div className="auth-face auth-back">
+          <form className="auth-card" onSubmit={onSubmit}>
+            <h2 className="auth-title">Create your account</h2>
+            <p className="auth-subtext">Start studying in minutes.</p>
+
+            <label>Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+
+            <label>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+
+            {error && <div className="error-text">{error}</div>}
+
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? "Loading..." : "Sign up"}
+            </button>
+
+            <button
+              type="button"
+              className="auth-switch"
+              onClick={() => setMode("login")}
+            >
+              Already have an account? Log in
+            </button>
+          </form>
         </div>
-        {error && <div className="error-text">{error}</div>}
-        <button type="submit" disabled={loading} className="btn btn-success">
-          {loading ? "Loading..." : mode === "login" ? "Log in" : "Sign up"}
-        </button>
-      </form>
+      </div>
     </div>
   );
 }
