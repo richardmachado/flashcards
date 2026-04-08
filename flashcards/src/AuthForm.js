@@ -10,8 +10,11 @@ function AuthForm({
   error,
   loading,
   onSubmit,
+  onForgotPassword,
 }) {
   const isSignup = mode === "signup";
+
+
 
   return (
     <div className="auth-flip-scene">
@@ -42,7 +45,13 @@ function AuthForm({
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? "Loading..." : "Log in"}
             </button>
-
+ <button
+  type="button"
+  className="auth-switch"
+  onClick={onForgotPassword}
+>
+  Forgot password?
+</button>
             <button
               type="button"
               className="auth-switch"
@@ -87,6 +96,7 @@ function AuthForm({
             >
               Already have an account? Log in
             </button>
+          
           </form>
         </div>
       </div>

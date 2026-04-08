@@ -74,6 +74,26 @@ function App() {
   return copy;
 }, []);
 
+async function handleForgotPassword() {
+  if (!email.trim()) {
+    setError("Enter your email first.");
+    return;
+  }
+
+  try {
+    setError("");
+
+    const data = await api("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+
+    alert(data.message || "If that email exists, a reset link has been sent.");
+  } catch (err) {
+    setError(err.message);
+  }
+}
+
   const buildQuizOptions = useCallback((card, allCards) => {
   if (!card || allCards.length < 4) return [];
 
@@ -604,7 +624,7 @@ return (
     {!token ? (
       <div className="landing-page">
         <nav className="landing-nav">
-          <div className="landing-logo">DeckList</div>
+          <div className="landing-logo">StudyDeck.cc</div>
  
         </nav>
 
@@ -635,6 +655,7 @@ return (
               error={error}
               loading={loading}
               onSubmit={handleAuth}
+              onForgotPassword={handleForgotPassword}
             />
           </div>
         </section>
