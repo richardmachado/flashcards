@@ -74,6 +74,26 @@ function App() {
   return copy;
 }, []);
 
+async function handleForgotPassword() {
+  if (!email.trim()) {
+    setError("Enter your email first.");
+    return;
+  }
+
+  try {
+    setError("");
+
+    const data = await api("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+
+    alert(data.message || "If that email exists, a reset link has been sent.");
+  } catch (err) {
+    setError(err.message);
+  }
+}
+
   const buildQuizOptions = useCallback((card, allCards) => {
   if (!card || allCards.length < 4) return [];
 
@@ -599,136 +619,197 @@ function nextQuizQuestion() {
     );
   }
 
-  return (
-    <div className="app-root">
-      <h1 className="app-title">Flashcards</h1>
+return (
+  <div className="app-root">
+    {!token ? (
+      <div className="landing-page">
+        <nav className="landing-nav">
+          <div className="landing-logo">StudyDeck.cc</div>
+ 
+        </nav>
 
-      {!token ? (
-        <AuthForm
-          mode={mode}
-          setMode={setMode}
-          email={email}
-          setEmail={setEmail}
-          password={password}
-          setPassword={setPassword}
-          error={error}
-          loading={loading}
-          onSubmit={handleAuth}
-        />
-      ) : (
-        <>
-          <HeaderBar
-            userEmail={userEmail}
-            isPro={isPro}
-            onLogout={handleLogout}
-            onUpgrade={handleUpgrade}
-          />
+        <section className="landing-hero">
+          <div className="landing-copy">
+            <div className="landing-eyebrow">Built for college students</div>
+            <h1 className="landing-title">Study smarter for your next exam</h1>
+            <p className="landing-subtitle">
+              Create flashcards, organize decks, quiz yourself, and turn notes
+              into study material faster.
+            </p>
 
-          <div className="view-toggle">
-            <button
-              type="button"
-              className={
-                "btn btn-small " +
-                (view === "manage" ? "btn-primary" : "btn-gray")
-              }
-              onClick={() => setView("manage")}
-            >
-              Manage cards
-            </button>
-            <button
-              type="button"
-              className={
-                "btn btn-small " +
-                (view === "study" ? "btn-primary" : "btn-gray")
-              }
-              onClick={() => {
-                setView("study");
-                startStudy();
-              }}
-            >
-              Study mode
-            </button>
+            <div className="landing-points">
+              <div>Organize material by class or exam</div>
+              <div>Review with flashcards and quiz mode</div>
+              <div>Generate cards from notes with AI</div>
+            </div>
           </div>
 
-          {view === "manage" && (
-            <ManageView
-              decks={decks}
-              selectedDeckId={selectedDeckId}
-              setSelectedDeckId={setSelectedDeckId}
-              onCreateDeck={async (name) => {
-                await api("/decks", {
-                  method: "POST",
-                  body: JSON.stringify({ name }),
-                });
-                await loadDecks();
-              }}
-              cards={cards}
-              front={front}
-              back={back}
-              setFront={setFront}
-              setBack={setBack}
-              loading={loading}
+          <div className="landing-auth">
+            <AuthForm
+              mode={mode}
+              setMode={setMode}
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
               error={error}
-              onCreateCard={handleCreateCard}
-              editingId={editingId}
-              editFront={editFront}
-              editBack={editBack}
-              setEditFront={setEditFront}
-              setEditBack={setEditBack}
-              onStartEdit={startEdit}
-              onSaveEdit={handleSaveEdit}
-              onDeleteCard={handleDeleteCard}
-              aiSourceText={aiSourceText}
-              setAiSourceText={setAiSourceText}
-              aiError={aiError}
-              aiLoading={aiLoading}
-              aiGeneratedCards={aiGeneratedCards}
-              setAiGeneratedCards={setAiGeneratedCards}
-              anySelected={anySelected}
-              onGenerate={handleGenerateFromText}
-              onSaveGenerated={handleSaveGeneratedCards}
-              isPro={isPro}
-              aiGenerationsUsed={aiGenerationsUsed}
-              aiFreeLimit={aiFreeLimit}
-              aiRemaining={aiRemaining}
-              onUpgrade={handleUpgrade}
+              loading={loading}
+              onSubmit={handleAuth}
+              onForgotPassword={handleForgotPassword}
             />
-          )}
+          </div>
+        </section>
 
-          {view === "study" && (
-            <StudyView
-              decks={decks}
-              selectedDeckId={selectedDeckId}
-              setSelectedDeckId={handleStudyDeckChange}
-              studyCards={studyCards}
-              studyIndex={studyIndex}
-              currentIndex={currentIndex}
-              showBack={showBack}
-              transitionDir={transitionDir}
-              isShuffled={isShuffled}
-              onPrev={prevCard}
-              onNext={nextCard}
-              onFlip={flipCard}
-              onStartStudy={startStudy}
-              onShuffle={startShuffle}
-              onUnshuffle={stopShuffle}
-              currentCard={currentCard}
-              studyMode={studyMode}
-              onStartQuiz={startQuiz}
-              quizOptions={quizOptions}
-              selectedAnswer={selectedAnswer}
-              quizFeedback={quizFeedback}
-              onQuizAnswer={handleQuizAnswer}
-              onNextQuiz={nextQuizQuestion}
-              quizScore={quizScore}
-              quizCompleted={quizCompleted}
-              quizTotal={quizTotal}
-            />
-          )}
-        </>
-      )}
-    </div>
-  );
+        <section className="landing-features">
+          <div className="feature-card">
+            <h3>Organize your classes</h3>
+            <p>
+              Create decks for each course, unit, or exam so your study material
+              stays structured.
+            </p>
+          </div>
+
+          <div className="feature-card">
+            <h3>Study actively</h3>
+            <p>
+              Use flashcards and quiz mode to test recall instead of passively
+              rereading notes.
+            </p>
+          </div>
+
+          <div className="feature-card">
+            <h3>Save time with AI</h3>
+            <p>
+              Turn source text into study cards faster when you need to review a
+              lot of material.
+            </p>
+          </div>
+        </section>
+
+        <section className="landing-pricing">
+          <h2>Start free</h2>
+          <p>
+            Use core study tools for free, then upgrade when you want more
+            advanced features.
+          </p>
+        </section>
+
+        <footer className="landing-footer">
+          <p>Made for focused exam prep.</p>
+        </footer>
+      </div>
+    ) : (
+      <>
+        <HeaderBar
+          userEmail={userEmail}
+          isPro={isPro}
+          onLogout={handleLogout}
+          onUpgrade={handleUpgrade}
+        />
+
+        <div className="view-toggle">
+          <button
+            type="button"
+            className={
+              "btn btn-small " + (view === "manage" ? "btn-primary" : "btn-gray")
+            }
+            onClick={() => setView("manage")}
+          >
+            Manage cards
+          </button>
+          <button
+            type="button"
+            className={
+              "btn btn-small " + (view === "study" ? "btn-primary" : "btn-gray")
+            }
+            onClick={() => {
+              setView("study");
+              startStudy();
+            }}
+          >
+            Study mode
+          </button>
+        </div>
+
+        {view === "manage" && (
+          <ManageView
+            decks={decks}
+            selectedDeckId={selectedDeckId}
+            setSelectedDeckId={setSelectedDeckId}
+            onCreateDeck={async (name) => {
+              await api("/decks", {
+                method: "POST",
+                body: JSON.stringify({ name }),
+              });
+              await loadDecks();
+            }}
+            cards={cards}
+            front={front}
+            back={back}
+            setFront={setFront}
+            setBack={setBack}
+            loading={loading}
+            error={error}
+            onCreateCard={handleCreateCard}
+            editingId={editingId}
+            editFront={editFront}
+            editBack={editBack}
+            setEditFront={setEditFront}
+            setEditBack={setEditBack}
+            onStartEdit={startEdit}
+            onSaveEdit={handleSaveEdit}
+            onDeleteCard={handleDeleteCard}
+            aiSourceText={aiSourceText}
+            setAiSourceText={setAiSourceText}
+            aiError={aiError}
+            aiLoading={aiLoading}
+            aiGeneratedCards={aiGeneratedCards}
+            setAiGeneratedCards={setAiGeneratedCards}
+            anySelected={anySelected}
+            onGenerate={handleGenerateFromText}
+            onSaveGenerated={handleSaveGeneratedCards}
+            isPro={isPro}
+            aiGenerationsUsed={aiGenerationsUsed}
+            aiFreeLimit={aiFreeLimit}
+            aiRemaining={aiRemaining}
+            onUpgrade={handleUpgrade}
+          />
+        )}
+
+        {view === "study" && (
+          <StudyView
+            decks={decks}
+            selectedDeckId={selectedDeckId}
+            setSelectedDeckId={handleStudyDeckChange}
+            studyCards={studyCards}
+            studyIndex={studyIndex}
+            currentIndex={currentIndex}
+            showBack={showBack}
+            transitionDir={transitionDir}
+            isShuffled={isShuffled}
+            onPrev={prevCard}
+            onNext={nextCard}
+            onFlip={flipCard}
+            onStartStudy={startStudy}
+            onShuffle={startShuffle}
+            onUnshuffle={stopShuffle}
+            currentCard={currentCard}
+            studyMode={studyMode}
+            onStartQuiz={startQuiz}
+            quizOptions={quizOptions}
+            selectedAnswer={selectedAnswer}
+            quizFeedback={quizFeedback}
+            onQuizAnswer={handleQuizAnswer}
+            onNextQuiz={nextQuizQuestion}
+            quizScore={quizScore}
+            quizCompleted={quizCompleted}
+            quizTotal={quizTotal}
+          />
+        )}
+      </>
+    )}
+  </div>
+);
 }
 
 export default App;

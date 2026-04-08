@@ -362,6 +362,30 @@ console.log("AFTER ensureProfile error =", afterEnsureError);
   }
 });
 
+//forgot password
+app.post("/auth/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.FRONTEND_URL}/reset-password`,
+    });
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    return res.json({
+      message: "If that email exists, a reset link has been sent.",
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 app.get("/debug/profile-direct", async (req, res) => {
   const targetId = "9d515465-6389-47ef-8688-cb3e52a0aa58";
 
