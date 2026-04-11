@@ -94,6 +94,21 @@ async function handleForgotPassword() {
   }
 }
 
+const onCancelSubscription = async () => {
+  try {
+    console.log("cancel clicked");
+    const data = await api("/billing/cancel", { method: "POST" });
+    console.log("cancel response:", data);
+    if (!data.url) throw new Error("No portal URL returned");
+    window.location.href = data.url;
+  } catch (err) {
+    console.error("cancel error:", err);
+    alert(err.message);
+  }
+};
+
+
+
   const buildQuizOptions = useCallback((card, allCards) => {
   if (!card || allCards.length < 4) return [];
 
@@ -543,7 +558,8 @@ function nextQuizQuestion() {
     setCards([]);
     setView("manage");
   }
-
+  
+  
   // ---------- effects ----------
 
   useEffect(() => {
@@ -705,6 +721,7 @@ return (
           isPro={isPro}
           onLogout={handleLogout}
           onUpgrade={handleUpgrade}
+          onCancelSubscription={onCancelSubscription}
         />
 
         <div className="view-toggle">
@@ -773,6 +790,7 @@ return (
             aiFreeLimit={aiFreeLimit}
             aiRemaining={aiRemaining}
             onUpgrade={handleUpgrade}
+            onCancelSubscription={onCancelSubscription}
           />
         )}
 
