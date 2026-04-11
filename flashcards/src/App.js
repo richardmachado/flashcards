@@ -640,7 +640,7 @@ return (
     {!token ? (
       <div className="landing-page">
         <nav className="landing-nav">
-          <div className="landing-logo">StudyDeck.cc</div>
+          <div className="landing-logo">Study My Cards</div>
  
         </nav>
 
