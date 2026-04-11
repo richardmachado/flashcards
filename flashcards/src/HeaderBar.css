@@ -1,0 +1,10 @@
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app-header-actions {
+  display: flex;
+  gap: 0.5rem; /* or whatever your small spacing token is */
+}
