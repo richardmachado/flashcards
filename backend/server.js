@@ -127,6 +127,39 @@ console.log({ data, error });
   }
 );
 
+app.post("/billing/cancel", requireUser, async (req, res) => {
+  try {
+    const { data: user, error } = await supabaseAdmin
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("id", req.user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!user?.stripe_customer_id) {
+      return res
+        .status(400)
+        .json({ error: "No Stripe customer found for this user" });
+    }
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: user.stripe_customer_id,
+      return_url: `${FRONTEND_URL}/`,
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error("billing cancel error:", err);
+    res
+      .status(500)
+      .json({ error: err.message || "Unable to create portal session" });
+  }
+});
+
+
+
+
 app.use(express.json());
 
 // AI route
