@@ -1,6 +1,6 @@
 const express = require("express");
 const requireUser = require("../middleware/requireUser");
-const { supabase } = require("../config/supabase");
+const { supabaseAdmin } = require("../config/supabase");
 
 const router = express.Router();
 
@@ -12,7 +12,7 @@ router.post("/", requireUser, async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("cards")
       .insert([{ front, back, deck_id, user_id: req.user.id }])
       .select()
@@ -29,8 +29,7 @@ router.get("/", requireUser, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // 1) Owned cards
-    const { data: ownedCards, error: ownedError } = await supabase
+    const { data: ownedCards, error: ownedError } = await supabaseAdmin
       .from("cards")
       .select("*, deck:decks(id, name)")
       .eq("user_id", userId)
@@ -38,8 +37,7 @@ router.get("/", requireUser, async (req, res) => {
 
     if (ownedError) throw ownedError;
 
-    // 2) Deck IDs shared with this user
-    const { data: shareRows, error: shareError } = await supabase
+    const { data: shareRows, error: shareError } = await supabaseAdmin
       .from("deck_shares")
       .select("deck_id")
       .eq("shared_with_user_id", userId);
@@ -48,21 +46,19 @@ router.get("/", requireUser, async (req, res) => {
 
     const sharedDeckIds = [...new Set((shareRows || []).map((r) => r.deck_id))];
 
-    // 3) Cards from shared decks (excluding ones already owned)
     let sharedCards = [];
     if (sharedDeckIds.length > 0) {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("cards")
         .select("*, deck:decks(id, name)")
         .in("deck_id", sharedDeckIds)
-        .neq("user_id", userId)          // avoid duplicating owned cards
+        .neq("user_id", userId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       sharedCards = data || [];
     }
 
-    // 4) Merge and sort
     const combinedMap = new Map();
     for (const card of [...(ownedCards || []), ...sharedCards]) {
       combinedMap.set(card.id, card);
@@ -74,16 +70,17 @@ router.get("/", requireUser, async (req, res) => {
 
     res.json(combined);
   } catch (err) {
+    console.error("GET /cards error:", err);
     res.status(400).json({ error: err.message });
   }
-}); 
+});
 
 router.put("/:id", requireUser, async (req, res) => {
   const { id } = req.params;
   const updates = req.body;
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("cards")
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq("id", id)
@@ -102,7 +99,7 @@ router.delete("/:id", requireUser, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("cards")
       .delete()
       .eq("id", id)

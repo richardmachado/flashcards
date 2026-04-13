@@ -65,12 +65,16 @@ function CardList({
                 <div className="card-item-front">{card.front}</div>
                 <div className="card-item-back">{card.back}</div>
                 <div className="card-item-footer">
-                  <div className="card-item-deck">
-         Deck:{" "}
-{card.decks?.name ||
-  decks.find((d) => d.id === card.deck_id)?.name ||
-  card.deck_id}
-                  </div>
+    <div className="card-item-deck">
+  Deck:{" "}
+  {(() => {
+    const deck = decks.find((d) => d.id === card.deck_id);
+    if (!deck) return card.deck_id;
+    return deck.shared
+      ? `${deck.name} (shared by ${deck.shared_by_email || "someone"})`
+      : deck.name;
+  })()}
+</div>
                   <div className="card-item-buttons">
                     <button
                       type="button"

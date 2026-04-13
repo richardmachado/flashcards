@@ -19,13 +19,13 @@ function DeckSelector({
    <div className="card-block-header">
   <div className="card-block-title">Decks</div>
   <div className="card-block-actions">
-   <button
+ <button
   type="button"
   className="btn btn-gray btn-small"
-  disabled={!selectedDeckId}
+  disabled={!selectedDeckId || decks.find((d) => d.id === selectedDeckId)?.shared}
   onClick={() => {
     const deck = decks.find((d) => d.id === selectedDeckId);
-    if (deck && onShareDeck) onShareDeck(deck);
+    if (deck && !deck.shared && onShareDeck) onShareDeck(deck);
   }}
 >
   Share
@@ -44,11 +44,13 @@ function DeckSelector({
   {decks.length === 0 ? (
     <option value="">No decks yet</option>
   ) : (
-    decks.map((deck) => (
-      <option key={deck.id} value={deck.id}>
-        {deck.name}
-      </option>
-    ))
+decks.map((deck) => (
+  <option key={deck.id} value={deck.id}>
+    {deck.shared
+      ? `${deck.name} (shared by ${deck.shared_by_email || "someone"})`
+      : deck.name}
+  </option>
+))
   )}
 </select>
       </div>

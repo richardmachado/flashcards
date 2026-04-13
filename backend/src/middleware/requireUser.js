@@ -1,4 +1,4 @@
-const { supabase } = require("../config/supabase");
+const { supabaseAdmin } = require("../config/supabase");
 
 async function requireUser(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -10,7 +10,7 @@ async function requireUser(req, res, next) {
   const token = authHeader.slice(7);
 
   try {
-    const { data, error } = await supabase.auth.getUser(token);
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
 
     if (error || !data.user) {
       return res.status(401).json({ error: "Invalid token" });
