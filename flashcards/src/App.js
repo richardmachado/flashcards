@@ -4,6 +4,7 @@ import AuthForm from "./AuthForm";
 import HeaderBar from "./HeaderBar";
 import ManageView from "./ManageView";
 import StudyView from "./StudyView";
+import ShareDeckModal from "./ShareDeckModal";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:4000";
 
@@ -62,6 +63,9 @@ function App() {
   const [aiError, setAiError] = useState("");
   const [aiGenerationsUsed, setAiGenerationsUsed] = useState(0);
   const [aiFreeLimit, setAiFreeLimit] = useState(3);
+
+  //share deck
+  const [shareDeck, setShareDeck] = useState(null);
 
   // ---------- helpers that don't depend on derived values ----------
 
@@ -768,6 +772,7 @@ return (
             loading={loading}
             error={error}
             onCreateCard={handleCreateCard}
+            onShareDeck={(deck) => setShareDeck(deck)}
             editingId={editingId}
             editFront={editFront}
             editBack={editBack}
@@ -824,6 +829,14 @@ return (
             quizTotal={quizTotal}
           />
         )}
+        {shareDeck && (
+  <ShareDeckModal
+    deck={shareDeck}
+    token={token}
+    API_URL={API_URL}
+    onClose={() => setShareDeck(null)}
+  />
+)}
       </>
     )}
   </div>
