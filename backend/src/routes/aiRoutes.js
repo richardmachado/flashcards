@@ -109,4 +109,80 @@ Keep questions short and concrete. Max 10 cards.
   }
 });
 
+router.post("/generate-test", requireUser, async (req, res) => {
+  const { cards } = req.body;
+
+  if (!Array.isArray(cards) || cards.length === 0) {
+    return res.status(400).json({ error: "No cards provided." });
+  }
+
+  try {
+    const systemPrompt = `
+You are a test generator. Given flashcards with a front (concept) and back (answer), generate one test question per card.
+Mix the question types evenly: multiple_choice, true_false, and fill_blank.
+For fill_blank, replace one or two key words in the answer with ___ .
+For multiple_choice, generate 3 plausible but wrong distractors based on the topic.
+For true_false, sometimes make the statement false by altering a key detail.
+
+Return STRICT JSON only, as an array:
+[
+  {
+    "type": "multiple_choice",
+    "question": "question text",
+    "options": ["correct answer", "wrong1", "wrong2", "wrong3"],
+    "answer": "correct answer"
+  },
+  {
+    "type": "true_false",
+    "question": "statement to evaluate",
+    "answer": "true"
+  },
+  {
+    "type": "fill_blank",
+    "question": "sentence with ___ replacing key word(s)",
+    "answer": "key word(s)"
+  }
+]
+Shuffle the options for multiple_choice so the correct answer isn't always first.
+Return exactly one question per card, in the same order.
+`.trim();
+
+    const userPrompt = `Generate a test from these flashcards:\n\n${cards
+      .map((c, i) => `${i + 1}. Front: ${c.front} | Back: ${c.back}`)
+      .join("\n")}`;
+
+    const response = await deepseek.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 2000,
+    });
+
+    const content = response.choices[0]?.message?.content || "{}";
+    let parsed;
+
+    try {
+      parsed = JSON.parse(content);
+    } catch (e) {
+      return res.status(500).json({ error: "Model did not return valid JSON.", raw: content });
+    }
+
+    // DeepSeek sometimes wraps the array in an object
+    const questions = Array.isArray(parsed) ? parsed : parsed.questions || parsed.test || [];
+
+    if (!questions.length) {
+      return res.status(500).json({ error: "No questions returned.", raw: parsed });
+    }
+
+    res.json({ questions });
+  } catch (err) {
+    console.error("generate-test error:", err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to generate test." });
+  }
+});
+
 module.exports = router;

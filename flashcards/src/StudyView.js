@@ -1,5 +1,5 @@
-// src/StudyView.js
 import React from "react";
+import TestMode from "./TestMode";
 
 function StudyView({
   decks,
@@ -28,6 +28,9 @@ function StudyView({
   quizScore,
   quizCompleted,
   quizTotal,
+  setStudyMode,
+  API_URL,
+  token,
 }) {
   const canQuiz = studyCards.length >= 4;
 
@@ -39,14 +42,14 @@ function StudyView({
         <label>Deck to study</label>
         <select
           value={selectedDeckId}
-          onChange={(e) => {
-            setSelectedDeckId(e.target.value);
-          }}
+          onChange={(e) => setSelectedDeckId(e.target.value)}
         >
           <option value="">All decks</option>
           {decks.map((deck) => (
             <option key={deck.id} value={deck.id}>
-              {deck.name}
+              {deck.shared
+                ? `${deck.name} (shared by ${deck.shared_by_email || "someone"})`
+                : deck.name}
             </option>
           ))}
         </select>
@@ -82,15 +85,33 @@ function StudyView({
             >
               Quiz mode
             </button>
+
+            <button
+              type="button"
+              className={
+                "btn btn-small " +
+                (studyMode === "test" ? "btn-primary" : "btn-gray")
+              }
+              onClick={() => setStudyMode("test")}
+              disabled={studyCards.length === 0}
+            >
+              AI Test
+            </button>
           </div>
 
-          {!canQuiz && (
+          {!canQuiz && studyMode === "quiz" && (
             <div className="muted-text" style={{ marginBottom: "1rem" }}>
               Quiz mode requires at least 4 cards in this deck.
             </div>
           )}
 
-          {studyMode === "quiz" ? (
+          {studyMode === "test" ? (
+            <TestMode
+              studyCards={studyCards}
+              API_URL={API_URL}
+              token={token}
+            />
+          ) : studyMode === "quiz" ? (
             currentCard && quizOptions.length > 0 ? (
               <>
                 <div
@@ -186,38 +207,38 @@ function StudyView({
                   </button>
                 </div>
 
- {quizCompleted && (
-  <div
-    className="quiz-result-box"
-    style={{
-      marginTop: "1.25rem",
-      padding: "1rem 1.25rem",
-      borderRadius: "8px",
-      border: "1px solid var(--border-subtle, #d0d7de)",
-      backgroundColor: "var(--bg-subtle, #f6f8fa)",
-      textAlign: "center",
-    }}
-  >
-    <div
-      style={{
-        fontSize: "1.1rem",
-        fontWeight: 600,
-        marginBottom: "0.25rem",
-      }}
-    >
-      Quiz finished
-    </div>
-    <div style={{ fontSize: "1.05rem", marginBottom: "0.25rem" }}>
-      You scored <strong>{quizScore}</strong> out of{" "}
-      <strong>{quizTotal}</strong>.
-    </div>
-    <div className="muted-text" style={{ fontSize: "0.95rem" }}>
-      {quizScore / Math.max(quizTotal, 1) >= 0.8
-        ? "Great job!"
-        : "Keep practicing and you’ll improve!"}
-    </div>
-  </div>
-)}
+                {quizCompleted && (
+                  <div
+                    className="quiz-result-box"
+                    style={{
+                      marginTop: "1.25rem",
+                      padding: "1rem 1.25rem",
+                      borderRadius: "8px",
+                      border: "1px solid var(--border-subtle, #d0d7de)",
+                      backgroundColor: "var(--bg-subtle, #f6f8fa)",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "1.1rem",
+                        fontWeight: 600,
+                        marginBottom: "0.25rem",
+                      }}
+                    >
+                      Quiz finished
+                    </div>
+                    <div style={{ fontSize: "1.05rem", marginBottom: "0.25rem" }}>
+                      You scored <strong>{quizScore}</strong> out of{" "}
+                      <strong>{quizTotal}</strong>.
+                    </div>
+                    <div className="muted-text" style={{ fontSize: "0.95rem" }}>
+                      {quizScore / Math.max(quizTotal, 1) >= 0.8
+                        ? "Great job!"
+                        : "Keep practicing and you'll improve!"}
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <div className="muted-text">
