@@ -1,4 +1,3 @@
-// src/NewCardForm.js
 import React from "react";
 
 function NewCardForm({
@@ -13,6 +12,11 @@ function NewCardForm({
   error,
   onSubmit,
 }) {
+  const selectedDeck = decks.find((d) => d.id === selectedDeckId);
+  const isShared = selectedDeck?.shared === true;
+
+  if (isShared) return null;  // hide entirely for shared decks
+
   return (
     <form className="card-block" onSubmit={onSubmit}>
       <div className="form-field">

@@ -4,6 +4,7 @@ import NewCardForm from "./NewCardForm";
 import AIGenerator from "./AIGenerator";
 import CardList from "./CardList";
 
+
 function ManageView({
   decks,
   selectedDeckId,
@@ -40,8 +41,17 @@ function ManageView({
   aiFreeLimit,
   aiRemaining,
   onUpgrade,
+  currentUserId, 
 }) {
+   const visibleCards = selectedDeckId   // <-- in here, before return
+    ? cards.filter((c) => c.deck_id === selectedDeckId)
+    : cards;
+
+    const selectedDeck = decks.find((d) => d.id === selectedDeckId);
+const isShared = selectedDeck?.shared === true;
+
   return (
+    
     <>
       <DeckSelector
         decks={decks}
@@ -63,7 +73,7 @@ function ManageView({
         error={error}
         onSubmit={onCreateCard}
       />
-
+{!isShared && (
       <AIGenerator
         aiSourceText={aiSourceText}
         setAiSourceText={setAiSourceText}
@@ -80,10 +90,11 @@ function ManageView({
         aiRemaining={aiRemaining}
         onUpgrade={onUpgrade}
       />
+)}
 
       <CardList
         decks={decks}
-        cards={cards}
+        cards={visibleCards}
         loading={loading}
         editingId={editingId}
         editFront={editFront}
@@ -93,6 +104,7 @@ function ManageView({
         onStartEdit={onStartEdit}
         onSaveEdit={onSaveEdit}
         onDeleteCard={onDeleteCard}
+        currentUserId={currentUserId}
       />
     </>
   );
