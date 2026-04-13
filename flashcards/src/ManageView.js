@@ -40,6 +40,7 @@ function ManageView({
   aiFreeLimit,
   aiRemaining,
   onUpgrade,
+  currentUserId, 
 }) {
   return (
     <>
@@ -93,6 +94,7 @@ function ManageView({
         onStartEdit={onStartEdit}
         onSaveEdit={onSaveEdit}
         onDeleteCard={onDeleteCard}
+        currentUserId={currentUserId}
       />
     </>
   );

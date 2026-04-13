@@ -12,8 +12,12 @@ function CardList({
   onStartEdit,
   onSaveEdit,
   onDeleteCard,
+   currentUserId,  
 }) {
+    console.log("currentUserId:", currentUserId, "first card user_id:", cards[0]?.user_id);
+    
   return (
+    
     <div className="card-block">
       <h2 className="section-title">Your cards</h2>
       {loading && cards.length === 0 && (
@@ -24,6 +28,7 @@ function CardList({
       )}
       <div className="cards-grid">
         {cards.map((card) => (
+          
           <div key={card.id} className="card-item">
             {editingId === card.id ? (
               <form onSubmit={onSaveEdit}>
@@ -75,22 +80,30 @@ function CardList({
       : deck.name;
   })()}
 </div>
-                  <div className="card-item-buttons">
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-tiny"
-                      onClick={() => onStartEdit(card)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-danger btn-tiny"
-                      onClick={() => onDeleteCard(card.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
+<div className="card-item-buttons">
+  {card.user_id === currentUserId ? (
+    <>
+      <button
+        type="button"
+        className="btn btn-primary btn-tiny"
+        onClick={() => onStartEdit(card)}
+      >
+        Edit
+      </button>
+      <button
+        type="button"
+        className="btn btn-danger btn-tiny"
+        onClick={() => onDeleteCard(card.id)}
+      >
+        Delete
+      </button>
+    </>
+  ) : (
+    <span className="muted-text" style={{ fontSize: "0.75rem" }}>
+      View only
+    </span>
+  )}
+</div>
                 </div>
               </>
             )}

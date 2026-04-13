@@ -66,6 +66,7 @@ function App() {
 
   //share deck
   const [shareDeck, setShareDeck] = useState(null);
+  const [userId, setUserId] = useState(localStorage.getItem("userId") || "");
 
   // ---------- helpers that don't depend on derived values ----------
 
@@ -169,16 +170,19 @@ const onCancelSubscription = async () => {
       const pro = !!data.user?.is_pro;
       const used = data.user?.ai_generations_used ?? 0;
       const limit = data.user?.ai_free_limit ?? 3;
+      const uid = data.user?.id || ""; 
 
       setUserEmail(email);
       setIsPro(pro);
       setAiGenerationsUsed(used);
       setAiFreeLimit(limit);
+      setUserId(uid); 
 
       localStorage.setItem("userEmail", email);
       localStorage.setItem("isPro", JSON.stringify(pro));
     } catch (err) {
       console.error("loadMe error:", err.message);
+      
     }
   }
 
@@ -556,9 +560,11 @@ function nextQuizQuestion() {
     setToken("");
     setUserEmail("");
     setIsPro(false);
+    setUserId("");    
     localStorage.removeItem("token");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("isPro");
+    localStorage.removeItem("userId"); 
     setCards([]);
     setView("manage");
   }
@@ -796,6 +802,7 @@ return (
             aiRemaining={aiRemaining}
             onUpgrade={handleUpgrade}
             onCancelSubscription={onCancelSubscription}
+            currentUserId={userId}
           />
         )}
 
