@@ -33,6 +33,7 @@ function ShareDeckModal({ deck, token, API_URL, onClose }) {
 
   useEffect(() => {
     loadShares();
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deck.id, token, API_URL]);
 
   async function handleShare(e) {
