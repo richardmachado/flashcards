@@ -834,6 +834,9 @@ return (
             quizScore={quizScore}
             quizCompleted={quizCompleted}
             quizTotal={quizTotal}
+            API_URL={API_URL}
+            token={token} 
+            setStudyMode={setStudyMode}
           />
         )}
         {shareDeck && (
