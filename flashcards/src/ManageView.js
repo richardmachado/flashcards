@@ -9,6 +9,7 @@ function ManageView({
   selectedDeckId,
   setSelectedDeckId,
   onCreateDeck,
+  onShareDeck,
   cards,
   front,
   back,
@@ -47,6 +48,7 @@ function ManageView({
         selectedDeckId={selectedDeckId}
         setSelectedDeckId={setSelectedDeckId}
         onCreateDeck={onCreateDeck}
+        onShareDeck={onShareDeck} 
       />
 
       <NewCardForm

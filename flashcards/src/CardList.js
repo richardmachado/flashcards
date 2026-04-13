@@ -66,11 +66,10 @@ function CardList({
                 <div className="card-item-back">{card.back}</div>
                 <div className="card-item-footer">
                   <div className="card-item-deck">
-                    Deck:{" "}
-                    {(
-                      decks.find((d) => d.id === card.deck_id)?.name ||
-                      card.deck_id
-                    )}
+         Deck:{" "}
+{card.decks?.name ||
+  decks.find((d) => d.id === card.deck_id)?.name ||
+  card.deck_id}
                   </div>
                   <div className="card-item-buttons">
                     <button
