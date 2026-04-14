@@ -11,6 +11,7 @@ function AuthForm({
   loading,
   onSubmit,
   onForgotPassword,
+  forgotMessage,
 }) {
   const isSignup = mode === "signup";
 
@@ -19,7 +20,11 @@ function AuthForm({
       <div className={`auth-flip-card ${isSignup ? "flipped" : ""}`}>
         <div className="auth-face auth-front">
           <form className="auth-card" onSubmit={onSubmit}>
-            <div className="auth-mode-toggle" role="tablist" aria-label="Authentication mode">
+            <div
+              className="auth-mode-toggle"
+              role="tablist"
+              aria-label="Authentication mode"
+            >
               <button
                 type="button"
                 role="tab"
@@ -61,7 +66,11 @@ function AuthForm({
 
             {error && <div className="error-text">{error}</div>}
 
-            <button type="submit" className="btn btn-primary" disabled={loading}>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+            >
               {loading ? "Loading..." : "Log in"}
             </button>
 
@@ -72,12 +81,25 @@ function AuthForm({
             >
               Forgot password?
             </button>
+
+            {forgotMessage && (
+              <div
+                className="success-text"
+                style={{ fontSize: "0.875rem", marginTop: "0.25rem" }}
+              >
+                {forgotMessage}
+              </div>
+            )}  
           </form>
         </div>
 
         <div className="auth-face auth-back">
           <form className="auth-card" onSubmit={onSubmit}>
-            <div className="auth-mode-toggle" role="tablist" aria-label="Authentication mode">
+            <div
+              className="auth-mode-toggle"
+              role="tablist"
+              aria-label="Authentication mode"
+            >
               <button
                 type="button"
                 role="tab"
@@ -119,7 +141,11 @@ function AuthForm({
 
             {error && <div className="error-text">{error}</div>}
 
-            <button type="submit" className="btn btn-primary" disabled={loading}>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+            >
               {loading ? "Loading..." : "Sign up"}
             </button>
           </form>

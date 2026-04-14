@@ -14,17 +14,28 @@ function CardList({
   onDeleteCard,
    currentUserId,  
 }) {
+
+   if (loading && cards.length === 0) {
+    return (
+      <div className="card-block">
+        <h2 className="section-title">Your cards</h2>
+        <div className="cards-grid">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="skeleton-card">
+              <div className="skeleton skeleton-line skeleton-line-medium" />
+              <div className="skeleton skeleton-line skeleton-line-full" />
+              <div className="skeleton skeleton-line skeleton-line-short" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
     
   return (
     
     <div className="card-block">
       <h2 className="section-title">Your cards</h2>
-      {loading && cards.length === 0 && (
-        <div className="muted-text">Loading...</div>
-      )}
-      {cards.length === 0 && !loading && (
-        <div className="muted-text">No cards yet.</div>
-      )}
       <div className="cards-grid">
         {cards.map((card) => (
           

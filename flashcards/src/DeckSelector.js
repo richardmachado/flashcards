@@ -8,6 +8,7 @@ function DeckSelector({
   onShareDeck,
   onRenameDeck,
   onDeleteDeck,
+  loading,
 }) {
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
@@ -174,9 +175,11 @@ function DeckSelector({
         </div>
       )}
 
-      <div className="form-field">
+            <div className="form-field">
         <label>Current deck</label>
-        {renaming ? (
+        {loading && decks.length === 0 ? (
+          <div className="skeleton skeleton-select" />
+        ) : renaming ? (
           <input
             type="text"
             value={renameValue}

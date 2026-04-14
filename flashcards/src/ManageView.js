@@ -61,6 +61,7 @@ function ManageView({
         onShareDeck={onShareDeck}
         onRenameDeck={onRenameDeck}
         onDeleteDeck={onDeleteDeck}
+          loading={loading}
       />
 
       <NewCardForm

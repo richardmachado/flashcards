@@ -68,6 +68,11 @@ function App() {
   const [shareDeck, setShareDeck] = useState(null);
   const [userId, setUserId] = useState(localStorage.getItem("userId") || "");
 
+  //forgot password
+  const [forgotMessage, setForgotMessage] = useState("");
+
+  const [upgradeError, setUpgradeError] = useState("");
+
   // ---------- helpers that don't depend on derived values ----------
 
   const shuffleArray = useCallback((arr) => {
@@ -87,13 +92,14 @@ function App() {
 
     try {
       setError("");
+      setForgotMessage("");
 
       const data = await api("/auth/forgot-password", {
         method: "POST",
         body: JSON.stringify({ email }),
       });
 
-      alert(
+      setForgotMessage(
         data.message || "If that email exists, a reset link has been sent."
       );
     } catch (err) {
@@ -103,12 +109,12 @@ function App() {
 
   const onCancelSubscription = async () => {
     try {
+      setUpgradeError("");
       const data = await api("/billing/cancel", { method: "POST" });
       if (!data.url) throw new Error("No portal URL returned");
       window.location.href = data.url;
     } catch (err) {
-      console.error("cancel error:", err);
-      alert(err.message);
+      setUpgradeError(err.message);
     }
   };
 
@@ -542,13 +548,14 @@ function App() {
 
   async function handleUpgrade() {
     try {
+      setUpgradeError("");
       const res = await api("/billing/create-checkout-session", {
         method: "POST",
       });
       if (!res.url) throw new Error("No checkout URL returned");
       window.location.href = res.url;
     } catch (err) {
-      alert(err.message);
+      setUpgradeError(err.message);
     }
   }
 
@@ -690,6 +697,7 @@ function App() {
                 loading={loading}
                 onSubmit={handleAuth}
                 onForgotPassword={handleForgotPassword}
+                forgotMessage={forgotMessage}
               />
             </div>
           </section>
@@ -740,6 +748,7 @@ function App() {
             onLogout={handleLogout}
             onUpgrade={handleUpgrade}
             onCancelSubscription={onCancelSubscription}
+            upgradeError={upgradeError}
           />
 
           <div className="view-toggle">
