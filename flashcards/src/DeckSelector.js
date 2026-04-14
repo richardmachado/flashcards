@@ -11,6 +11,9 @@ function DeckSelector({
 }) {
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createValue, setCreateValue] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const selectedDeck = decks.find((d) => d.id === selectedDeckId);
   const isShared = selectedDeck?.shared === true;
@@ -26,60 +29,90 @@ function DeckSelector({
     await onRenameDeck(selectedDeckId, renameValue.trim());
     setRenaming(false);
   }
-  async function handleDelete() {
-    if (!selectedDeckId) return;
-    const confirmed = window.confirm(
-      `Delete "${selectedDeck?.name}"? This will also delete all cards in it.`
-    );
-    if (!confirmed) return;
-    await onDeleteDeck(selectedDeckId);
+
+  async function handleCreate(e) {
+    if (e?.preventDefault) e.preventDefault();
+    if (!createValue.trim()) return;
+    await onCreateDeck(createValue.trim());
+    setCreateValue("");
+    setCreating(false);
   }
+
+  async function handleDelete() {
+    await onDeleteDeck(selectedDeckId);
+    setConfirmingDelete(false);
+  }
+
+  const isEditing = renaming || creating || confirmingDelete;
 
   return (
     <div className="card-block">
       <div className="card-block-header">
         <div className="card-block-title">Decks</div>
         <div className="card-block-actions">
-          {!isShared && selectedDeckId && (
+
+          {/* Rename / Delete / Share buttons — only when not editing */}
+          {!isEditing && !isShared && selectedDeckId && (
             <>
-              {renaming ? (
-                <>
-                  <button
-                    type="button"
-                    className="btn btn-success btn-small"
-                    onClick={handleRename}
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-gray btn-small"
-                    onClick={() => setRenaming(false)}
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    className="btn btn-gray btn-small"
-                    onClick={startRename}
-                  >
-                    Rename
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger btn-small"
-                    onClick={handleDelete}
-                  >
-                    Delete
-                  </button>
-                </>
-              )}
+              <button
+                type="button"
+                className="btn btn-gray btn-small"
+                onClick={startRename}
+              >
+                Rename
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger btn-small"
+                onClick={() => setConfirmingDelete(true)}
+              >
+                Delete
+              </button>
             </>
           )}
-          {!renaming && (
+
+          {/* Rename save/cancel */}
+          {renaming && (
+            <>
+              <button
+                type="button"
+                className="btn btn-success btn-small"
+                onClick={handleRename}
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                className="btn btn-gray btn-small"
+                onClick={() => setRenaming(false)}
+              >
+                Cancel
+              </button>
+            </>
+          )}
+
+          {/* Create save/cancel */}
+          {creating && (
+            <>
+              <button
+                type="button"
+                className="btn btn-success btn-small"
+                onClick={handleCreate}
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                className="btn btn-gray btn-small"
+                onClick={() => { setCreating(false); setCreateValue(""); }}
+              >
+                Cancel
+              </button>
+            </>
+          )}
+
+          {/* Share button */}
+          {!isEditing && (
             <button
               type="button"
               className="btn btn-gray btn-small"
@@ -92,21 +125,54 @@ function DeckSelector({
               Share
             </button>
           )}
-          {!renaming && (
+
+          {/* New deck button */}
+          {!isEditing && (
             <button
               type="button"
               className="btn btn-success btn-small"
-              onClick={async () => {
-                const name = prompt("Deck name?");
-                if (!name || !name.trim()) return;
-                await onCreateDeck(name.trim());
-              }}
+              onClick={() => setCreating(true)}
             >
               + New deck
             </button>
           )}
+
         </div>
       </div>
+
+      {/* Delete confirmation box */}
+      {confirmingDelete && (
+        <div
+          style={{
+            padding: "0.75rem 1rem",
+            marginBottom: "0.75rem",
+            borderRadius: "6px",
+            border: "1px solid #cf222e",
+            backgroundColor: "#fff0f0",
+            fontSize: "0.9rem",
+          }}
+        >
+          <div style={{ marginBottom: "0.5rem" }}>
+            Delete <strong>{selectedDeck?.name}</strong>? This will also delete all cards in it.
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              type="button"
+              className="btn btn-danger btn-small"
+              onClick={handleDelete}
+            >
+              Yes, delete
+            </button>
+            <button
+              type="button"
+              className="btn btn-gray btn-small"
+              onClick={() => setConfirmingDelete(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="form-field">
         <label>Current deck</label>
@@ -118,6 +184,18 @@ function DeckSelector({
             onKeyDown={(e) => {
               if (e.key === "Enter") handleRename(e);
               if (e.key === "Escape") setRenaming(false);
+            }}
+            autoFocus
+          />
+        ) : creating ? (
+          <input
+            type="text"
+            placeholder="Deck name..."
+            value={createValue}
+            onChange={(e) => setCreateValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCreate(e);
+              if (e.key === "Escape") { setCreating(false); setCreateValue(""); }
             }}
             autoFocus
           />
