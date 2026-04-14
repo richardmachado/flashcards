@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback} from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./App.css";
 import AuthForm from "./AuthForm";
 import HeaderBar from "./HeaderBar";
@@ -70,68 +70,71 @@ function App() {
 
   // ---------- helpers that don't depend on derived values ----------
 
- const shuffleArray = useCallback((arr) => {
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
+  const shuffleArray = useCallback((arr) => {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }, []);
+
+  async function handleForgotPassword() {
+    if (!email.trim()) {
+      setError("Enter your email first.");
+      return;
+    }
+
+    try {
+      setError("");
+
+      const data = await api("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+
+      alert(
+        data.message || "If that email exists, a reset link has been sent."
+      );
+    } catch (err) {
+      setError(err.message);
+    }
   }
-  return copy;
-}, []);
 
-async function handleForgotPassword() {
-  if (!email.trim()) {
-    setError("Enter your email first.");
-    return;
-  }
+  const onCancelSubscription = async () => {
+    try {
+      console.log("cancel clicked");
+      const data = await api("/billing/cancel", { method: "POST" });
+      console.log("cancel response:", data);
+      if (!data.url) throw new Error("No portal URL returned");
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("cancel error:", err);
+      alert(err.message);
+    }
+  };
 
-  try {
-    setError("");
+  const buildQuizOptions = useCallback(
+    (card, allCards) => {
+      if (!card || allCards.length < 4) return [];
 
-    const data = await api("/auth/forgot-password", {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    });
+      const correct = card.back;
 
-    alert(data.message || "If that email exists, a reset link has been sent.");
-  } catch (err) {
-    setError(err.message);
-  }
-}
+      const wrongAnswers = allCards
+        .filter((c) => c.id !== card.id && c.back && c.back !== correct)
+        .map((c) => c.back);
 
-const onCancelSubscription = async () => {
-  try {
-    console.log("cancel clicked");
-    const data = await api("/billing/cancel", { method: "POST" });
-    console.log("cancel response:", data);
-    if (!data.url) throw new Error("No portal URL returned");
-    window.location.href = data.url;
-  } catch (err) {
-    console.error("cancel error:", err);
-    alert(err.message);
-  }
-};
+      const uniqueWrongAnswers = [...new Set(wrongAnswers)];
 
+      if (uniqueWrongAnswers.length < 3) return [];
 
+      const shuffledWrong = shuffleArray(uniqueWrongAnswers);
+      const options = [correct, ...shuffledWrong.slice(0, 3)];
 
-  const buildQuizOptions = useCallback((card, allCards) => {
-  if (!card || allCards.length < 4) return [];
-
-  const correct = card.back;
-
-  const wrongAnswers = allCards
-    .filter((c) => c.id !== card.id && c.back && c.back !== correct)
-    .map((c) => c.back);
-
-  const uniqueWrongAnswers = [...new Set(wrongAnswers)];
-
-  if (uniqueWrongAnswers.length < 3) return [];
-
-  const shuffledWrong = shuffleArray(uniqueWrongAnswers);
-  const options = [correct, ...shuffledWrong.slice(0, 3)];
-
-  return shuffleArray(options);
-}, [shuffleArray]);
+      return shuffleArray(options);
+    },
+    [shuffleArray]
+  );
 
   async function api(path, options = {}) {
     const res = await fetch(`${API_URL}${path}`, {
@@ -170,19 +173,18 @@ const onCancelSubscription = async () => {
       const pro = !!data.user?.is_pro;
       const used = data.user?.ai_generations_used ?? 0;
       const limit = data.user?.ai_free_limit ?? 3;
-      const uid = data.user?.id || ""; 
+      const uid = data.user?.id || "";
 
       setUserEmail(email);
       setIsPro(pro);
       setAiGenerationsUsed(used);
       setAiFreeLimit(limit);
-      setUserId(uid); 
+      setUserId(uid);
 
       localStorage.setItem("userEmail", email);
       localStorage.setItem("isPro", JSON.stringify(pro));
     } catch (err) {
       console.error("loadMe error:", err.message);
-      
     }
   }
 
@@ -204,86 +206,85 @@ const onCancelSubscription = async () => {
 
   // ---------- quiz handlers (now can safely use studyCards/currentCard) ----------
 
-
   function handleStudyDeckChange(newDeckId) {
-  setSelectedDeckId(newDeckId);
+    setSelectedDeckId(newDeckId);
 
-  if (studyMode !== "quiz") return;
+    if (studyMode !== "quiz") return;
 
-  const nextStudyCards = cards.filter(
-    (card) => !newDeckId || card.deck_id === newDeckId
-  );
+    const nextStudyCards = cards.filter(
+      (card) => !newDeckId || card.deck_id === newDeckId
+    );
 
-  setStudyIndex(0);
-  setSelectedAnswer("");
-  setQuizFeedback("");
-  setQuizScore(0);
-  setQuizCompleted(false);
-  setQuizTotal(nextStudyCards.length);
-  setShowBack(false);
-  setTransitionDir("none");
-  setIsShuffled(false);
-  setShuffledIndices([]);
-
-  if (nextStudyCards.length >= 4) {
-    setQuizOptions(buildQuizOptions(nextStudyCards[0], nextStudyCards));
-  } else {
-    setQuizOptions([]);
-  }
-}
-
-function startQuiz() {
-  if (studyCards.length < 4) return;
-
-  setStudyMode("quiz");
-  setStudyIndex(0);
-  setShowBack(false);
-  setTransitionDir("none");
-  setIsShuffled(false);
-  setShuffledIndices([]);
-
-  setSelectedAnswer("");
-  setQuizFeedback("");
-  setQuizScore(0);
-  setQuizCompleted(false);
-  setQuizTotal(studyCards.length);
-
-  const firstCard = studyCards[0];
-  setQuizOptions(buildQuizOptions(firstCard, studyCards));
-}
-
-function handleQuizAnswer(answer) {
-  if (!currentCard || selectedAnswer || quizCompleted) return;
-
-  setSelectedAnswer(answer);
-
-  if (answer === currentCard.back) {
-    setQuizFeedback("Correct!");
-    setQuizScore((s) => s + 1);
-  } else {
-    setQuizFeedback(`Incorrect. Correct answer: ${currentCard.back}`);
-  }
-}
-
-function nextQuizQuestion() {
-  if (studyCards.length === 0 || !selectedAnswer) return;
-
-  const isLastQuestion = studyIndex >= studyCards.length - 1;
-
-  if (isLastQuestion) {
-    setQuizCompleted(true);
+    setStudyIndex(0);
+    setSelectedAnswer("");
     setQuizFeedback("");
-    return;
+    setQuizScore(0);
+    setQuizCompleted(false);
+    setQuizTotal(nextStudyCards.length);
+    setShowBack(false);
+    setTransitionDir("none");
+    setIsShuffled(false);
+    setShuffledIndices([]);
+
+    if (nextStudyCards.length >= 4) {
+      setQuizOptions(buildQuizOptions(nextStudyCards[0], nextStudyCards));
+    } else {
+      setQuizOptions([]);
+    }
   }
 
-  const nextIndex = studyIndex + 1;
-  const nextCard = studyCards[nextIndex];
+  function startQuiz() {
+    if (studyCards.length < 4) return;
 
-  setStudyIndex(nextIndex);
-  setSelectedAnswer("");
-  setQuizFeedback("");
-  setQuizOptions(buildQuizOptions(nextCard, studyCards));
-}
+    setStudyMode("quiz");
+    setStudyIndex(0);
+    setShowBack(false);
+    setTransitionDir("none");
+    setIsShuffled(false);
+    setShuffledIndices([]);
+
+    setSelectedAnswer("");
+    setQuizFeedback("");
+    setQuizScore(0);
+    setQuizCompleted(false);
+    setQuizTotal(studyCards.length);
+
+    const firstCard = studyCards[0];
+    setQuizOptions(buildQuizOptions(firstCard, studyCards));
+  }
+
+  function handleQuizAnswer(answer) {
+    if (!currentCard || selectedAnswer || quizCompleted) return;
+
+    setSelectedAnswer(answer);
+
+    if (answer === currentCard.back) {
+      setQuizFeedback("Correct!");
+      setQuizScore((s) => s + 1);
+    } else {
+      setQuizFeedback(`Incorrect. Correct answer: ${currentCard.back}`);
+    }
+  }
+
+  function nextQuizQuestion() {
+    if (studyCards.length === 0 || !selectedAnswer) return;
+
+    const isLastQuestion = studyIndex >= studyCards.length - 1;
+
+    if (isLastQuestion) {
+      setQuizCompleted(true);
+      setQuizFeedback("");
+      return;
+    }
+
+    const nextIndex = studyIndex + 1;
+    const nextCard = studyCards[nextIndex];
+
+    setStudyIndex(nextIndex);
+    setSelectedAnswer("");
+    setQuizFeedback("");
+    setQuizOptions(buildQuizOptions(nextCard, studyCards));
+  }
 
   function startStudy() {
     if (studyCards.length === 0) return;
@@ -374,7 +375,7 @@ function nextQuizQuestion() {
       setToken(data.access_token);
       localStorage.setItem("token", data.access_token);
 
-      await loadMe(data.access_token);
+      await Promise.all([loadMe(data.access_token), loadDecks(), loadCards()]);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -560,35 +561,30 @@ function nextQuizQuestion() {
     setToken("");
     setUserEmail("");
     setIsPro(false);
-    setUserId("");    
+    setUserId("");
     localStorage.removeItem("token");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("isPro");
-    localStorage.removeItem("userId"); 
+    localStorage.removeItem("userId");
     setCards([]);
     setView("manage");
   }
-  
-  
+
   // ---------- effects ----------
 
   useEffect(() => {
     if (token) {
       loadMe(token);
-      loadDecks();
-      loadCards();
+      Promise.all([loadDecks(), loadCards()]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
-
 
   useEffect(() => {
     setStudyIndex(0);
     setShowBack(false);
     setTransitionDir("none");
   }, [studyCards.length, selectedDeckId]);
-
-
 
   // ---------- render ----------
 
@@ -645,212 +641,216 @@ function nextQuizQuestion() {
     );
   }
 
-return (
-  <div className="app-root">
-    {!token ? (
-      <div className="landing-page">
-        <nav className="landing-nav">
-          <div className="landing-logo">Study My Cards</div>
- 
-        </nav>
+  return (
+    <div className="app-root">
+      {!token ? (
+        <div className="landing-page">
+          <nav className="landing-nav">
+            <div className="landing-logo">Study My Cards</div>
+          </nav>
 
-        <section className="landing-hero">
-          <div className="landing-copy">
-            <div className="landing-eyebrow">Built for college students</div>
-            <h1 className="landing-title">Study smarter for your next exam</h1>
-            <p className="landing-subtitle">
-              Create flashcards, organize decks, quiz yourself, and turn notes
-              into study material faster.
-            </p>
+          <section className="landing-hero">
+            <div className="landing-copy">
+              <div className="landing-eyebrow">Built for college students</div>
+              <h1 className="landing-title">
+                Study smarter for your next exam
+              </h1>
+              <p className="landing-subtitle">
+                Create flashcards, organize decks, quiz yourself, and turn notes
+                into study material faster.
+              </p>
 
-            <div className="landing-points">
-              <div>Organize material by class or exam</div>
-              <div>Review with flashcards and quiz mode</div>
-              <div>Generate cards from notes with AI</div>
+              <div className="landing-points">
+                <div>Organize material by class or exam</div>
+                <div>Review with flashcards and quiz mode</div>
+                <div>Generate cards from notes with AI</div>
+                <div>Generate tests with AI to test your knowledge</div>
+              </div>
             </div>
-          </div>
 
-          <div className="landing-auth">
-            <AuthForm
-              mode={mode}
-              setMode={setMode}
-              email={email}
-              setEmail={setEmail}
-              password={password}
-              setPassword={setPassword}
-              error={error}
-              loading={loading}
-              onSubmit={handleAuth}
-              onForgotPassword={handleForgotPassword}
-            />
-          </div>
-        </section>
+            <div className="landing-auth">
+              <AuthForm
+                mode={mode}
+                setMode={setMode}
+                email={email}
+                setEmail={setEmail}
+                password={password}
+                setPassword={setPassword}
+                error={error}
+                loading={loading}
+                onSubmit={handleAuth}
+                onForgotPassword={handleForgotPassword}
+              />
+            </div>
+          </section>
 
-        <section className="landing-features">
-          <div className="feature-card">
-            <h3>Organize your classes</h3>
+          <section className="landing-features">
+            <div className="feature-card">
+              <h3>Organize your classes</h3>
+              <p>
+                Create decks for each course, unit, or exam so your study
+                material stays structured.
+              </p>
+            </div>
+
+            <div className="feature-card">
+              <h3>Study actively</h3>
+              <p>
+                Use flashcards and quiz mode to test recall instead of passively
+                rereading notes.
+              </p>
+            </div>
+
+            <div className="feature-card">
+              <h3>Save time with AI</h3>
+              <p>
+                Turn source text into study cards faster when you need to review
+                a lot of material.
+              </p>
+            </div>
+          </section>
+
+          <section className="landing-pricing">
+            <h2>Start free</h2>
             <p>
-              Create decks for each course, unit, or exam so your study material
-              stays structured.
+              Use core study tools for free, then upgrade when you want more
+              advanced features.
             </p>
-          </div>
+          </section>
 
-          <div className="feature-card">
-            <h3>Study actively</h3>
-            <p>
-              Use flashcards and quiz mode to test recall instead of passively
-              rereading notes.
-            </p>
-          </div>
-
-          <div className="feature-card">
-            <h3>Save time with AI</h3>
-            <p>
-              Turn source text into study cards faster when you need to review a
-              lot of material.
-            </p>
-          </div>
-        </section>
-
-        <section className="landing-pricing">
-          <h2>Start free</h2>
-          <p>
-            Use core study tools for free, then upgrade when you want more
-            advanced features.
-          </p>
-        </section>
-
-        <footer className="landing-footer">
-          <p>Made for focused exam prep.</p>
-        </footer>
-      </div>
-    ) : (
-      <>
-        <HeaderBar
-          userEmail={userEmail}
-          isPro={isPro}
-          onLogout={handleLogout}
-          onUpgrade={handleUpgrade}
-          onCancelSubscription={onCancelSubscription}
-        />
-
-        <div className="view-toggle">
-          <button
-            type="button"
-            className={
-              "btn btn-small " + (view === "manage" ? "btn-primary" : "btn-gray")
-            }
-            onClick={() => setView("manage")}
-          >
-            Manage cards
-          </button>
-          <button
-            type="button"
-            className={
-              "btn btn-small " + (view === "study" ? "btn-primary" : "btn-gray")
-            }
-            onClick={() => {
-              setView("study");
-              startStudy();
-            }}
-          >
-            Study mode
-          </button>
+          <footer className="landing-footer">
+            <p>Made for focused exam prep.</p>
+          </footer>
         </div>
-
-        {view === "manage" && (
-          <ManageView
-            decks={decks}
-            selectedDeckId={selectedDeckId}
-            setSelectedDeckId={setSelectedDeckId}
-            onCreateDeck={async (name) => {
-              await api("/decks", {
-                method: "POST",
-                body: JSON.stringify({ name }),
-              });
-              await loadDecks();
-            }}
-            cards={cards}
-            front={front}
-            back={back}
-            setFront={setFront}
-            setBack={setBack}
-            loading={loading}
-            error={error}
-            onCreateCard={handleCreateCard}
-            onShareDeck={(deck) => setShareDeck(deck)}
-            editingId={editingId}
-            editFront={editFront}
-            editBack={editBack}
-            setEditFront={setEditFront}
-            setEditBack={setEditBack}
-            onStartEdit={startEdit}
-            onSaveEdit={handleSaveEdit}
-            onDeleteCard={handleDeleteCard}
-            aiSourceText={aiSourceText}
-            setAiSourceText={setAiSourceText}
-            aiError={aiError}
-            aiLoading={aiLoading}
-            aiGeneratedCards={aiGeneratedCards}
-            setAiGeneratedCards={setAiGeneratedCards}
-            anySelected={anySelected}
-            onGenerate={handleGenerateFromText}
-            onSaveGenerated={handleSaveGeneratedCards}
+      ) : (
+        <>
+          <HeaderBar
+            userEmail={userEmail}
             isPro={isPro}
-            aiGenerationsUsed={aiGenerationsUsed}
-            aiFreeLimit={aiFreeLimit}
-            aiRemaining={aiRemaining}
+            onLogout={handleLogout}
             onUpgrade={handleUpgrade}
             onCancelSubscription={onCancelSubscription}
-            currentUserId={userId}
           />
-        )}
 
-        {view === "study" && (
-          <StudyView
-            decks={decks}
-            selectedDeckId={selectedDeckId}
-            setSelectedDeckId={handleStudyDeckChange}
-            studyCards={studyCards}
-            studyIndex={studyIndex}
-            currentIndex={currentIndex}
-            showBack={showBack}
-            transitionDir={transitionDir}
-            isShuffled={isShuffled}
-            onPrev={prevCard}
-            onNext={nextCard}
-            onFlip={flipCard}
-            onStartStudy={startStudy}
-            onShuffle={startShuffle}
-            onUnshuffle={stopShuffle}
-            currentCard={currentCard}
-            studyMode={studyMode}
-            onStartQuiz={startQuiz}
-            quizOptions={quizOptions}
-            selectedAnswer={selectedAnswer}
-            quizFeedback={quizFeedback}
-            onQuizAnswer={handleQuizAnswer}
-            onNextQuiz={nextQuizQuestion}
-            quizScore={quizScore}
-            quizCompleted={quizCompleted}
-            quizTotal={quizTotal}
-            API_URL={API_URL}
-            token={token} 
-            setStudyMode={setStudyMode}
-          />
-        )}
-        {shareDeck && (
-  <ShareDeckModal
-    deck={shareDeck}
-    token={token}
-    API_URL={API_URL}
-    onClose={() => setShareDeck(null)}
-  />
-)}
-      </>
-    )}
-  </div>
-);
+          <div className="view-toggle">
+            <button
+              type="button"
+              className={
+                "btn btn-small " +
+                (view === "manage" ? "btn-primary" : "btn-gray")
+              }
+              onClick={() => setView("manage")}
+            >
+              Manage cards
+            </button>
+            <button
+              type="button"
+              className={
+                "btn btn-small " +
+                (view === "study" ? "btn-primary" : "btn-gray")
+              }
+              onClick={() => {
+                setView("study");
+                startStudy();
+              }}
+            >
+              Study mode
+            </button>
+          </div>
+
+          {view === "manage" && (
+            <ManageView
+              decks={decks}
+              selectedDeckId={selectedDeckId}
+              setSelectedDeckId={setSelectedDeckId}
+              onCreateDeck={async (name) => {
+                await api("/decks", {
+                  method: "POST",
+                  body: JSON.stringify({ name }),
+                });
+                await loadDecks();
+              }}
+              cards={cards}
+              front={front}
+              back={back}
+              setFront={setFront}
+              setBack={setBack}
+              loading={loading}
+              error={error}
+              onCreateCard={handleCreateCard}
+              onShareDeck={(deck) => setShareDeck(deck)}
+              editingId={editingId}
+              editFront={editFront}
+              editBack={editBack}
+              setEditFront={setEditFront}
+              setEditBack={setEditBack}
+              onStartEdit={startEdit}
+              onSaveEdit={handleSaveEdit}
+              onDeleteCard={handleDeleteCard}
+              aiSourceText={aiSourceText}
+              setAiSourceText={setAiSourceText}
+              aiError={aiError}
+              aiLoading={aiLoading}
+              aiGeneratedCards={aiGeneratedCards}
+              setAiGeneratedCards={setAiGeneratedCards}
+              anySelected={anySelected}
+              onGenerate={handleGenerateFromText}
+              onSaveGenerated={handleSaveGeneratedCards}
+              isPro={isPro}
+              aiGenerationsUsed={aiGenerationsUsed}
+              aiFreeLimit={aiFreeLimit}
+              aiRemaining={aiRemaining}
+              onUpgrade={handleUpgrade}
+              onCancelSubscription={onCancelSubscription}
+              currentUserId={userId}
+            />
+          )}
+
+          {view === "study" && (
+            <StudyView
+              decks={decks}
+              selectedDeckId={selectedDeckId}
+              setSelectedDeckId={handleStudyDeckChange}
+              studyCards={studyCards}
+              studyIndex={studyIndex}
+              currentIndex={currentIndex}
+              showBack={showBack}
+              transitionDir={transitionDir}
+              isShuffled={isShuffled}
+              onPrev={prevCard}
+              onNext={nextCard}
+              onFlip={flipCard}
+              onStartStudy={startStudy}
+              onShuffle={startShuffle}
+              onUnshuffle={stopShuffle}
+              currentCard={currentCard}
+              studyMode={studyMode}
+              onStartQuiz={startQuiz}
+              quizOptions={quizOptions}
+              selectedAnswer={selectedAnswer}
+              quizFeedback={quizFeedback}
+              onQuizAnswer={handleQuizAnswer}
+              onNextQuiz={nextQuizQuestion}
+              quizScore={quizScore}
+              quizCompleted={quizCompleted}
+              quizTotal={quizTotal}
+              API_URL={API_URL}
+              token={token}
+              setStudyMode={setStudyMode}
+            />
+          )}
+          {shareDeck && (
+            <ShareDeckModal
+              deck={shareDeck}
+              token={token}
+              API_URL={API_URL}
+              onClose={() => setShareDeck(null)}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
 }
 
 export default App;
