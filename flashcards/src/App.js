@@ -103,9 +103,7 @@ function App() {
 
   const onCancelSubscription = async () => {
     try {
-      console.log("cancel clicked");
       const data = await api("/billing/cancel", { method: "POST" });
-      console.log("cancel response:", data);
       if (!data.url) throw new Error("No portal URL returned");
       window.location.href = data.url;
     } catch (err) {
@@ -165,7 +163,6 @@ function App() {
       });
 
       const data = await res.json();
-      console.log("/me response:", data);
 
       if (!res.ok) throw new Error(data.error || "Failed to load user");
 
@@ -365,8 +362,6 @@ function App() {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-
-      console.log("auth response:", data);
 
       if (!data.access_token) {
         throw new Error("No access token returned");
@@ -801,7 +796,6 @@ function App() {
               aiFreeLimit={aiFreeLimit}
               aiRemaining={aiRemaining}
               onUpgrade={handleUpgrade}
-              onCancelSubscription={onCancelSubscription}
               currentUserId={userId}
             />
           )}

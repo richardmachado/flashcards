@@ -14,7 +14,6 @@ function CardList({
   onDeleteCard,
    currentUserId,  
 }) {
-    console.log("currentUserId:", currentUserId, "first card user_id:", cards[0]?.user_id);
     
   return (
     

@@ -29,10 +29,6 @@ router.post(
         const userId = session.metadata?.user_id;
         const customerId = session.customer || null;
 
-        const { data, error } = await supabaseAdmin.rpc(
-          "test_authorization_header"
-        );
-      
 
         if (userId) {
           const { error } = await supabaseAdmin
