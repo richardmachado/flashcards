@@ -1,6 +1,4 @@
-// src/HeaderBar.js
 import React from "react";
-import "./HeaderBar.css";
 
 function HeaderBar({
   userEmail,
@@ -11,9 +9,10 @@ function HeaderBar({
 }) {
   return (
     <div className="app-header">
-      <div>
-        Logged in as <strong>{userEmail}</strong>
-        {isPro && <span> · Pro</span>}
+      <div className="app-header-email">
+        <span className="app-header-label">Logged in as</span>{" "}
+        <strong>{userEmail}</strong>
+        {isPro && <span className="pro-badge">Pro</span>}
       </div>
 
       <div className="app-header-actions">
@@ -22,7 +21,7 @@ function HeaderBar({
             className="btn btn-gray btn-small"
             onClick={onCancelSubscription}
           >
-            Manage Billing
+            Billing
           </button>
         )}
 

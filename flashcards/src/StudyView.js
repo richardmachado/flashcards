@@ -106,17 +106,17 @@ function StudyView({
           )}
 
           {studyMode === "test" ? (
-            <TestMode
-              studyCards={studyCards}
-              API_URL={API_URL}
-              token={token}
-            />
+            <TestMode studyCards={studyCards} API_URL={API_URL} token={token} />
           ) : studyMode === "quiz" ? (
             currentCard && quizOptions.length > 0 ? (
               <>
                 <div
                   className="study-card-wrapper"
-                  style={{ display: "block" }}
+                  style={{
+                    display: "block",
+                    height: "auto",
+                    minHeight: "auto",
+                  }}
                 >
                   <div
                     className="study-card-face-header"
@@ -156,7 +156,8 @@ function StudyView({
                     const isPicked = option === selectedAnswer;
 
                     let className = "btn btn-gray";
-                    if (selectedAnswer && isCorrect) className = "btn btn-success";
+                    if (selectedAnswer && isCorrect)
+                      className = "btn btn-success";
                     if (selectedAnswer && isPicked && !isCorrect) {
                       className = "btn btn-danger";
                     }
@@ -228,7 +229,9 @@ function StudyView({
                     >
                       Quiz finished
                     </div>
-                    <div style={{ fontSize: "1.05rem", marginBottom: "0.25rem" }}>
+                    <div
+                      style={{ fontSize: "1.05rem", marginBottom: "0.25rem" }}
+                    >
                       You scored <strong>{quizScore}</strong> out of{" "}
                       <strong>{quizTotal}</strong>.
                     </div>
