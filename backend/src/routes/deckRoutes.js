@@ -99,4 +99,46 @@ router.get("/", requireUser, async (req, res) => {
   }
 });
 
+router.put("/:id", requireUser, async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: "Deck name required" });
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("decks")
+      .update({ name: name.trim() })
+      .eq("id", id)
+      .eq("user_id", req.user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: "Deck not found" });
+    res.json(data);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete("/:id", requireUser, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabaseAdmin
+      .from("decks")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", req.user.id);
+
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 module.exports = router;

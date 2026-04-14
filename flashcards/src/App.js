@@ -552,6 +552,21 @@ function App() {
     }
   }
 
+  async function handleRenameDeck(id, name) {
+    await api(`/decks/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ name }),
+    });
+    await loadDecks();
+  }
+
+  async function handleDeleteDeck(id) {
+    await api(`/decks/${id}`, { method: "DELETE" });
+    setSelectedDeckId("");
+    await loadDecks();
+    await loadCards();
+  }
+
   function handleLogout() {
     setToken("");
     setUserEmail("");
@@ -797,6 +812,8 @@ function App() {
               aiRemaining={aiRemaining}
               onUpgrade={handleUpgrade}
               currentUserId={userId}
+              onRenameDeck={handleRenameDeck}
+              onDeleteDeck={handleDeleteDeck}
             />
           )}
 

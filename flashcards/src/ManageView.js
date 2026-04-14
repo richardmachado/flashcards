@@ -4,7 +4,6 @@ import NewCardForm from "./NewCardForm";
 import AIGenerator from "./AIGenerator";
 import CardList from "./CardList";
 
-
 function ManageView({
   decks,
   selectedDeckId,
@@ -41,24 +40,27 @@ function ManageView({
   aiFreeLimit,
   aiRemaining,
   onUpgrade,
-  currentUserId, 
+  currentUserId,
+  onRenameDeck,
+  onDeleteDeck,
 }) {
-   const visibleCards = selectedDeckId   // <-- in here, before return
+  const visibleCards = selectedDeckId // <-- in here, before return
     ? cards.filter((c) => c.deck_id === selectedDeckId)
     : cards;
 
-    const selectedDeck = decks.find((d) => d.id === selectedDeckId);
-const isShared = selectedDeck?.shared === true;
+  const selectedDeck = decks.find((d) => d.id === selectedDeckId);
+  const isShared = selectedDeck?.shared === true;
 
   return (
-    
     <>
       <DeckSelector
         decks={decks}
         selectedDeckId={selectedDeckId}
         setSelectedDeckId={setSelectedDeckId}
         onCreateDeck={onCreateDeck}
-        onShareDeck={onShareDeck} 
+        onShareDeck={onShareDeck}
+        onRenameDeck={onRenameDeck}
+        onDeleteDeck={onDeleteDeck}
       />
 
       <NewCardForm
@@ -73,24 +75,24 @@ const isShared = selectedDeck?.shared === true;
         error={error}
         onSubmit={onCreateCard}
       />
-{!isShared && (
-      <AIGenerator
-        aiSourceText={aiSourceText}
-        setAiSourceText={setAiSourceText}
-        aiError={aiError}
-        aiLoading={aiLoading}
-        aiGeneratedCards={aiGeneratedCards}
-        setAiGeneratedCards={setAiGeneratedCards}
-        anySelected={anySelected}
-        onGenerate={onGenerate}
-        onSaveGenerated={onSaveGenerated}
-        isPro={isPro}
-        aiGenerationsUsed={aiGenerationsUsed}
-        aiFreeLimit={aiFreeLimit}
-        aiRemaining={aiRemaining}
-        onUpgrade={onUpgrade}
-      />
-)}
+      {!isShared && (
+        <AIGenerator
+          aiSourceText={aiSourceText}
+          setAiSourceText={setAiSourceText}
+          aiError={aiError}
+          aiLoading={aiLoading}
+          aiGeneratedCards={aiGeneratedCards}
+          setAiGeneratedCards={setAiGeneratedCards}
+          anySelected={anySelected}
+          onGenerate={onGenerate}
+          onSaveGenerated={onSaveGenerated}
+          isPro={isPro}
+          aiGenerationsUsed={aiGenerationsUsed}
+          aiFreeLimit={aiFreeLimit}
+          aiRemaining={aiRemaining}
+          onUpgrade={onUpgrade}
+        />
+      )}
 
       <CardList
         decks={decks}
