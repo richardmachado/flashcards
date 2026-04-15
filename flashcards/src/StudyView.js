@@ -31,6 +31,8 @@ function StudyView({
   setStudyMode,
   API_URL,
   token,
+  isPro,
+  onUpgrade,
 }) {
   const canQuiz = studyCards.length >= 4;
 
@@ -106,7 +108,13 @@ function StudyView({
           )}
 
           {studyMode === "test" ? (
-            <TestMode studyCards={studyCards} API_URL={API_URL} token={token} />
+            <TestMode
+              studyCards={studyCards}
+              API_URL={API_URL}
+              token={token}
+              isPro={isPro}
+              onUpgrade={onUpgrade}
+            />
           ) : studyMode === "quiz" ? (
             currentCard && quizOptions.length > 0 ? (
               <>

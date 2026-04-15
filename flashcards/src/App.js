@@ -857,6 +857,8 @@ function App() {
               API_URL={API_URL}
               token={token}
               setStudyMode={setStudyMode}
+              isPro={isPro}
+              onUpgrade={handleUpgrade}
             />
           )}
           {shareDeck && (
