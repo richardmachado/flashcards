@@ -6,11 +6,11 @@ const router = express.Router();
 
 router.get("/me", requireUser, async (req, res) => {
   try {
-   
-
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, is_pro, stripe_customer_id, ai_generations_used, ai_free_limit")
+      .select(
+        "id, is_pro, stripe_customer_id, ai_generations_used, ai_free_limit,ai_tests_used",
+      )
       .eq("id", req.user.id)
       .maybeSingle();
 
@@ -24,6 +24,7 @@ router.get("/me", requireUser, async (req, res) => {
         stripe_customer_id: profile?.stripe_customer_id || null,
         ai_generations_used: profile?.ai_generations_used ?? 0,
         ai_free_limit: profile?.ai_free_limit ?? 3,
+        ai_tests_used: profile?.ai_tests_used ?? 0,
       },
     });
   } catch (err) {

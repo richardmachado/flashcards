@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 function TestMode({ studyCards, API_URL, token, isPro, onUpgrade }) {
   const [questions, setQuestions] = useState([]);
@@ -9,6 +9,24 @@ function TestMode({ studyCards, API_URL, token, isPro, onUpgrade }) {
   const [error, setError] = useState("");
   const [testsUsed, setTestsUsed] = useState(0);
   const freeLimit = 3;
+
+    useEffect(() => {
+    async function loadUsage() {
+      try {
+        const res = await fetch(`${API_URL}/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+         console.log("/me response in TestMode:", data);
+        if (data.user?.ai_tests_used != null) {
+          setTestsUsed(data.user.ai_tests_used);
+        }
+      } catch (err) {
+        // silent fail
+      }
+    }
+    loadUsage();
+  }, [API_URL, token]);
 
   async function generateTest() {
     setLoading(true);
@@ -76,6 +94,8 @@ function TestMode({ studyCards, API_URL, token, isPro, onUpgrade }) {
     );
   }
 
+
+
   if (questions.length === 0) {
     return (
       <div style={{ marginTop: "1rem" }}>
@@ -98,9 +118,22 @@ function TestMode({ studyCards, API_URL, token, isPro, onUpgrade }) {
             className="muted-text"
             style={{ marginBottom: "0.5rem", fontSize: "0.85rem" }}
           >
-            {isPro
-              ? "Unlimited AI tests"
-              : `${Math.max(0, freeLimit - testsUsed)} free test${freeLimit - testsUsed === 1 ? "" : "s"} remaining`}
+          {isPro ? (
+      "Unlimited AI tests"
+    ) : freeLimit - testsUsed <= 0 ? (
+      <>
+        No free tests remaining.{" "}
+        <button
+          className="btn btn-primary btn-small"
+          style={{ marginLeft: "0.25rem" }}
+          onClick={onUpgrade}
+        >
+          Go Pro for unlimited tests
+        </button>
+      </>
+    ) : (
+      `${Math.max(0, freeLimit - testsUsed)} free test${freeLimit - testsUsed === 1 ? "" : "s"} remaining`
+    )}
           </div>
         )}
         <button

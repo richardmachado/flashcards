@@ -117,6 +117,28 @@ router.post("/generate-test", requireUser, async (req, res) => {
   }
 
   try {
+    // Check usage
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("is_pro, ai_tests_used")
+      .eq("id", req.user.id)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+
+    const isPro = !!profile?.is_pro;
+    const testsUsed = profile?.ai_tests_used ?? 0;
+    const freeLimit = 3;
+
+    if (!isPro && testsUsed >= freeLimit) {
+      return res.status(403).json({
+        error: "You've used all 3 free AI tests. Upgrade to Pro for unlimited tests.",
+        is_pro: false,
+        ai_tests_used: testsUsed,
+        ai_tests_free_limit: freeLimit,
+      });
+    }
+
     const systemPrompt = `
 You are a test generator. Given flashcards with a front (concept) and back (answer), generate one test question per card.
 Mix the question types evenly: multiple_choice, true_false, and fill_blank.
@@ -171,51 +193,11 @@ Return exactly one question per card, in the same order.
       return res.status(500).json({ error: "Model did not return valid JSON.", raw: content });
     }
 
-    // DeepSeek sometimes wraps the array in an object
     const questions = Array.isArray(parsed) ? parsed : parsed.questions || parsed.test || [];
 
     if (!questions.length) {
       return res.status(500).json({ error: "No questions returned.", raw: parsed });
     }
-
-    res.json({ questions });
-  } catch (err) {
-    console.error("generate-test error:", err.response?.data || err.message);
-    res.status(500).json({ error: "Failed to generate test." });
-  }
-});
-
-router.post("/generate-test", requireUser, async (req, res) => {
-  const { cards } = req.body;
-
-  if (!Array.isArray(cards) || cards.length === 0) {
-    return res.status(400).json({ error: "No cards provided." });
-  }
-
-  try {
-    // Check usage
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .select("is_pro, ai_tests_used")
-      .eq("id", req.user.id)
-      .maybeSingle();
-
-    if (profileError) throw profileError;
-
-    const isPro = !!profile?.is_pro;
-    const testsUsed = profile?.ai_tests_used ?? 0;
-    const freeLimit = 3;
-
-    if (!isPro && testsUsed >= freeLimit) {
-      return res.status(403).json({
-        error: "You've used all 3 free AI tests. Upgrade to Pro for unlimited tests.",
-        is_pro: false,
-        ai_tests_used: testsUsed,
-        ai_tests_free_limit: freeLimit,
-      });
-    }
-
-    // ... existing DeepSeek call stays exactly the same ...
 
     // Increment usage for free users
     if (!isPro) {
@@ -225,7 +207,7 @@ router.post("/generate-test", requireUser, async (req, res) => {
         .eq("id", req.user.id);
     }
 
-    res.json({ questions });
+    res.json({ questions, ai_tests_used: testsUsed + 1 });
   } catch (err) {
     console.error("generate-test error:", err.response?.data || err.message);
     res.status(500).json({ error: "Failed to generate test." });
