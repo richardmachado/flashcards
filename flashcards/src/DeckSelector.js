@@ -256,22 +256,42 @@ const isEditing = renaming || creating || confirmingDelete || confirmingLeave;
             autoFocus
           />
         ) : (
-          <select
-            value={selectedDeckId}
-            onChange={(e) => setSelectedDeckId(e.target.value)}
-          >
-            {decks.length === 0 ? (
-              <option value="">No decks yet</option>
-            ) : (
-              decks.map((deck) => (
-                <option key={deck.id} value={deck.id}>
-                  {deck.shared
-                    ? `${deck.name} (shared by ${deck.shared_by_email || "someone"})`
-                    : deck.name}
-                </option>
-              ))
-            )}
-          </select>
+     <select
+  value={selectedDeckId}
+  onChange={(e) => setSelectedDeckId(e.target.value)}
+>
+  {decks.length === 0 ? (
+    <option value="">No decks yet</option>
+  ) : (
+    <>
+      <option value="">All decks</option>
+
+      {decks.filter((d) => !d.shared).length > 0 && (
+        <optgroup label="My Decks">
+          {decks
+            .filter((d) => !d.shared)
+            .map((deck) => (
+              <option key={deck.id} value={deck.id}>
+                {deck.name}
+              </option>
+            ))}
+        </optgroup>
+      )}
+
+      {decks.filter((d) => d.shared).length > 0 && (
+        <optgroup label="Shared with me">
+          {decks
+            .filter((d) => d.shared)
+            .map((deck) => (
+              <option key={deck.id} value={deck.id}>
+                {`${deck.name} (by ${deck.shared_by_email || "someone"})`}
+              </option>
+            ))}
+        </optgroup>
+      )}
+    </>
+  )}
+</select>
         )}
       </div>
     </div>
