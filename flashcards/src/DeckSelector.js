@@ -23,7 +23,8 @@ function DeckSelector({
 
   const selectedDeck = decks.find((d) => d.id === selectedDeckId);
   const isShared = selectedDeck?.shared === true;
-  const isEditing = renaming || creating || confirmingDelete || confirmingLeave || copying;
+  const isEditing =
+    renaming || creating || confirmingDelete || confirmingLeave || copying;
 
   function startRename() {
     setRenameValue(selectedDeck?.name || "");
@@ -55,14 +56,21 @@ function DeckSelector({
       <div className="card-block-header">
         <div className="card-block-title">Decks</div>
         <div className="card-block-actions">
-
           {/* Own deck buttons */}
           {!isEditing && !isShared && selectedDeckId && (
             <>
-              <button type="button" className="btn btn-gray btn-small" onClick={startRename}>
+              <button
+                type="button"
+                className="btn btn-gray btn-small"
+                onClick={startRename}
+              >
                 Rename
               </button>
-              <button type="button" className="btn btn-danger btn-small" onClick={() => setConfirmingDelete(true)}>
+              <button
+                type="button"
+                className="btn btn-danger btn-small"
+                onClick={() => setConfirmingDelete(true)}
+              >
                 Delete
               </button>
             </>
@@ -74,11 +82,18 @@ function DeckSelector({
               <button
                 type="button"
                 className="btn btn-primary btn-small"
-                onClick={() => { setCopyName(selectedDeck?.name || ""); setCopying(true); }}
+                onClick={() => {
+                  setCopyName(selectedDeck?.name || "");
+                  setCopying(true);
+                }}
               >
                 Copy to my decks
               </button>
-              <button type="button" className="btn btn-danger btn-small" onClick={() => setConfirmingLeave(true)}>
+              <button
+                type="button"
+                className="btn btn-danger btn-small"
+                onClick={() => setConfirmingLeave(true)}
+              >
                 Leave deck
               </button>
             </>
@@ -87,16 +102,43 @@ function DeckSelector({
           {/* Rename save/cancel */}
           {renaming && (
             <>
-              <button type="button" className="btn btn-success btn-small" onClick={handleRename}>Save</button>
-              <button type="button" className="btn btn-gray btn-small" onClick={() => setRenaming(false)}>Cancel</button>
+              <button
+                type="button"
+                className="btn btn-success btn-small"
+                onClick={handleRename}
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                className="btn btn-gray btn-small"
+                onClick={() => setRenaming(false)}
+              >
+                Cancel
+              </button>
             </>
           )}
 
           {/* Create save/cancel */}
           {creating && (
             <>
-              <button type="button" className="btn btn-success btn-small" onClick={handleCreate}>Save</button>
-              <button type="button" className="btn btn-gray btn-small" onClick={() => { setCreating(false); setCreateValue(""); }}>Cancel</button>
+              <button
+                type="button"
+                className="btn btn-success btn-small"
+                onClick={handleCreate}
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                className="btn btn-gray btn-small"
+                onClick={() => {
+                  setCreating(false);
+                  setCreateValue("");
+                }}
+              >
+                Cancel
+              </button>
             </>
           )}
 
@@ -115,7 +157,16 @@ function DeckSelector({
               >
                 Save copy
               </button>
-              <button type="button" className="btn btn-gray btn-small" onClick={() => { setCopying(false); setCopyName(""); }}>Cancel</button>
+              <button
+                type="button"
+                className="btn btn-gray btn-small"
+                onClick={() => {
+                  setCopying(false);
+                  setCopyName("");
+                }}
+              >
+                Cancel
+              </button>
             </>
           )}
 
@@ -136,36 +187,86 @@ function DeckSelector({
 
           {/* New deck button */}
           {!isEditing && (
-            <button type="button" className="btn btn-success btn-small" onClick={() => setCreating(true)}>
+            <button
+              type="button"
+              className="btn btn-success btn-small"
+              onClick={() => setCreating(true)}
+            >
               + New deck
             </button>
           )}
-
         </div>
       </div>
 
       {/* Leave confirmation */}
       {confirmingLeave && (
-        <div style={{ padding: "0.75rem 1rem", marginBottom: "0.75rem", borderRadius: "6px", border: "1px solid #cf222e", backgroundColor: "#fff0f0", fontSize: "0.9rem" }}>
+        <div
+          style={{
+            padding: "0.75rem 1rem",
+            marginBottom: "0.75rem",
+            borderRadius: "6px",
+            border: "1px solid #cf222e",
+            backgroundColor: "#fff0f0",
+            fontSize: "0.9rem",
+          }}
+        >
           <div style={{ marginBottom: "0.5rem" }}>
-            Remove <strong>{selectedDeck?.name}</strong> from your account? You can ask the owner to share it again.
+            Remove <strong>{selectedDeck?.name}</strong> from your account? You
+            can ask the owner to share it again.
           </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
-            <button type="button" className="btn btn-danger btn-small" onClick={async () => { await onLeaveDeck(selectedDeckId); setConfirmingLeave(false); }}>Yes, remove</button>
-            <button type="button" className="btn btn-gray btn-small" onClick={() => setConfirmingLeave(false)}>Cancel</button>
+            <button
+              type="button"
+              className="btn btn-danger btn-small"
+              onClick={async () => {
+                await onLeaveDeck(selectedDeckId);
+                setConfirmingLeave(false);
+              }}
+            >
+              Yes, remove
+            </button>
+            <button
+              type="button"
+              className="btn btn-gray btn-small"
+              onClick={() => setConfirmingLeave(false)}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
 
       {/* Delete confirmation */}
       {confirmingDelete && (
-        <div style={{ padding: "0.75rem 1rem", marginBottom: "0.75rem", borderRadius: "6px", border: "1px solid #cf222e", backgroundColor: "#fff0f0", fontSize: "0.9rem" }}>
+        <div
+          style={{
+            padding: "0.75rem 1rem",
+            marginBottom: "0.75rem",
+            borderRadius: "6px",
+            border: "1px solid #cf222e",
+            backgroundColor: "#fff0f0",
+            fontSize: "0.9rem",
+          }}
+        >
           <div style={{ marginBottom: "0.5rem" }}>
-            Delete <strong>{selectedDeck?.name}</strong>? This will also delete all cards in it.
+            Delete <strong>{selectedDeck?.name}</strong>? This will also delete
+            all cards in it.
           </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
-            <button type="button" className="btn btn-danger btn-small" onClick={handleDelete}>Yes, delete</button>
-            <button type="button" className="btn btn-gray btn-small" onClick={() => setConfirmingDelete(false)}>Cancel</button>
+            <button
+              type="button"
+              className="btn btn-danger btn-small"
+              onClick={handleDelete}
+            >
+              Yes, delete
+            </button>
+            <button
+              type="button"
+              className="btn btn-gray btn-small"
+              onClick={() => setConfirmingDelete(false)}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
@@ -179,7 +280,10 @@ function DeckSelector({
             type="text"
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleRename(e); if (e.key === "Escape") setRenaming(false); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleRename(e);
+              if (e.key === "Escape") setRenaming(false);
+            }}
             autoFocus
           />
         ) : creating ? (
@@ -188,25 +292,42 @@ function DeckSelector({
             placeholder="Deck name..."
             value={createValue}
             onChange={(e) => setCreateValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleCreate(e); if (e.key === "Escape") { setCreating(false); setCreateValue(""); } }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCreate(e);
+              if (e.key === "Escape") {
+                setCreating(false);
+                setCreateValue("");
+              }
+            }}
             autoFocus
           />
-       ) : copying ? (
-  <>
-    <input
-      type="text"
-      placeholder="Name for your copy..."
-      value={copyName}
-      onChange={(e) => setCopyName(e.target.value)}
-      onKeyDown={(e) => { if (e.key === "Escape") { setCopying(false); setCopyName(""); } }}
-      autoFocus
-    />
-    <div className="muted-text" style={{ fontSize: "0.78rem", marginTop: "0.3rem" }}>
-      Rename your copy or keep the same name, then click Save copy.
-    </div>
-  </>
-) : (
-          <select value={selectedDeckId} onChange={(e) => setSelectedDeckId(e.target.value)}>
+        ) : copying ? (
+          <>
+            <input
+              type="text"
+              placeholder="Name for your copy..."
+              value={copyName}
+              onChange={(e) => setCopyName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setCopying(false);
+                  setCopyName("");
+                }
+              }}
+              autoFocus
+            />
+            <div
+              className="muted-text"
+              style={{ fontSize: "0.78rem", marginTop: "0.3rem" }}
+            >
+              Rename your copy or keep the same name, then click Save copy.
+            </div>
+          </>
+        ) : (
+          <select
+            value={selectedDeckId}
+            onChange={(e) => setSelectedDeckId(e.target.value)}
+          >
             {decks.length === 0 ? (
               <option value="">No decks yet</option>
             ) : (
@@ -214,16 +335,25 @@ function DeckSelector({
                 <option value="">All decks</option>
                 {decks.filter((d) => !d.shared).length > 0 && (
                   <optgroup label="My Decks">
-                    {decks.filter((d) => !d.shared).map((deck) => (
-                      <option key={deck.id} value={deck.id}>{deck.name}</option>
-                    ))}
+                    {decks
+                      .filter((d) => !d.shared)
+                      .map((deck) => (
+                        <option key={deck.id} value={deck.id}>
+                          {deck.name}
+                        </option>
+                      ))}
                   </optgroup>
                 )}
                 {decks.filter((d) => d.shared).length > 0 && (
                   <optgroup label="Shared with me">
-                    {decks.filter((d) => d.shared).map((deck) => (
-                      <option key={deck.id} value={deck.id}>{`${deck.name} (by ${deck.shared_by_email || "someone"})`}</option>
-                    ))}
+                    {decks
+                      .filter((d) => d.shared)
+                      .map((deck) => (
+                        <option
+                          key={deck.id}
+                          value={deck.id}
+                        >{`${deck.name} (by ${deck.shared_by_email || "someone"})`}</option>
+                      ))}
                   </optgroup>
                 )}
               </>

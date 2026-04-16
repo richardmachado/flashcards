@@ -226,4 +226,55 @@ Return exactly one question per card, in the same order.
   }
 });
 
+router.post("/save-test-score", requireUser, async (req, res) => {
+  const { deck_id, score, total } = req.body;
+
+  if (score == null || total == null) {
+    return res.status(400).json({ error: "Score and total required." });
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("test_scores")
+      .insert([
+        {
+          user_id: req.user.id,
+          deck_id: deck_id || null,
+          score,
+          total,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error("save test score error:", err);
+    res.status(500).json({ error: "Failed to save score." });
+  }
+});
+
+router.get("/test-scores", requireUser, async (req, res) => {
+  const { deck_id } = req.query;
+
+  try {
+    let query = supabaseAdmin
+      .from("test_scores")
+      .select("*")
+      .eq("user_id", req.user.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (deck_id) query = query.eq("deck_id", deck_id);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error("get test scores error:", err);
+    res.status(500).json({ error: "Failed to load scores." });
+  }
+});
+
 module.exports = router;

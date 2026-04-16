@@ -146,6 +146,7 @@ function StudyView({
               token={token}
               isPro={isPro}
               onUpgrade={onUpgrade}
+              deckId={selectedDeckId}
             />
           ) : studyMode === "quiz" ? (
             currentCard && quizOptions.length > 0 ? (

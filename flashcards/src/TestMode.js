@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-function TestMode({ studyCards, API_URL, token, isPro, onUpgrade }) {
+function TestMode({ studyCards, API_URL, token, isPro, onUpgrade, deckId }) {
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -10,23 +10,37 @@ function TestMode({ studyCards, API_URL, token, isPro, onUpgrade }) {
   const [testsUsed, setTestsUsed] = useState(0);
   const freeLimit = 3;
 
-    useEffect(() => {
-    async function loadUsage() {
-      try {
-        const res = await fetch(`${API_URL}/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-         console.log("/me response in TestMode:", data);
-        if (data.user?.ai_tests_used != null) {
-          setTestsUsed(data.user.ai_tests_used);
-        }
-      } catch (err) {
-        // silent fail
+  const [scoreHistory, setScoreHistory] = useState([]);
+
+  useEffect(() => {
+  async function loadUsage() {
+    try {
+      const res = await fetch(`${API_URL}/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.user?.ai_tests_used != null) {
+        setTestsUsed(data.user.ai_tests_used);
       }
-    }
-    loadUsage();
-  }, [API_URL, token]);
+    } catch (err) {}
+  }
+
+  async function loadHistory() {
+    try {
+      const url = deckId
+        ? `${API_URL}/ai/test-scores?deck_id=${deckId}`
+        : `${API_URL}/ai/test-scores`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) setScoreHistory(data);
+    } catch (err) {}
+  }
+
+  loadUsage();
+  loadHistory();
+}, [API_URL, token, deckId]);
 
   async function generateTest() {
     setLoading(true);
@@ -68,17 +82,38 @@ function TestMode({ studyCards, API_URL, token, isPro, onUpgrade }) {
     setAnswers((prev) => ({ ...prev, [index]: value }));
   }
 
-  function handleSubmit() {
-    let correct = 0;
-    questions.forEach((q, i) => {
-      const userAnswer = (answers[i] || "").trim().toLowerCase();
-      const correctAnswer = q.answer.trim().toLowerCase();
-      if (userAnswer === correctAnswer) correct++;
+ async function handleSubmit() {
+  let correct = 0;
+  questions.forEach((q, i) => {
+    const userAnswer = (answers[i] || "").trim().toLowerCase();
+    const correctAnswer = q.answer.trim().toLowerCase();
+    if (userAnswer === correctAnswer) correct++;
+  });
+  setScore(correct);
+  setSubmitted(true);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+
+  // Save score
+  try {
+    await fetch(`${API_URL}/ai/save-test-score`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ deck_id: deckId, score: correct, total: questions.length }),
     });
-    setScore(correct);
-    setSubmitted(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Refresh history
+    const url = deckId
+      ? `${API_URL}/ai/test-scores?deck_id=${deckId}`
+      : `${API_URL}/ai/test-scores`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await res.json();
+    if (Array.isArray(data)) setScoreHistory(data);
+  } catch (err) {
+    console.error("save score error:", err);
   }
+}
 
   function isCorrect(index) {
     const userAnswer = (answers[index] || "").trim().toLowerCase();
@@ -136,6 +171,22 @@ function TestMode({ studyCards, API_URL, token, isPro, onUpgrade }) {
     )}
           </div>
         )}
+
+        {scoreHistory.length > 0 && (
+  <div style={{ marginBottom: "1rem" }}>
+    <div style={{ fontWeight: 600, fontSize: "0.9rem", marginBottom: "0.4rem" }}>
+      Past scores
+    </div>
+    {scoreHistory.map((s, i) => (
+      <div key={s.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", padding: "0.3rem 0", borderBottom: "1px solid #e5e7eb" }}>
+        <span className="muted-text">{new Date(s.created_at).toLocaleDateString()}</span>
+        <span style={{ fontWeight: 600, color: s.score / s.total >= 0.8 ? "#16a34a" : s.score / s.total >= 0.5 ? "#d97706" : "#dc2626" }}>
+          {s.score}/{s.total} ({Math.round(s.score / s.total * 100)}%)
+        </span>
+      </div>
+    ))}
+  </div>
+)}
         <button
           className="btn btn-primary btn-small"
           onClick={generateTest}
