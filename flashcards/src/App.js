@@ -894,6 +894,7 @@ const studyCards = cards.filter((card) => {
               hasHardCards={hasHardCards}
               onSetDifficulty={handleSetDifficulty}
               quizCardDifficulty={quizCardDifficulty}
+               currentUserId={userId}
             />
           )}
           {shareDeck && (

@@ -38,6 +38,7 @@ function StudyView({
   hasHardCards,
   onSetDifficulty,
   quizCardDifficulty,
+  currentUserId,
 }) {
   const canQuiz = studyCards.length >= 4;
 
@@ -386,30 +387,61 @@ function StudyView({
                   <span className="muted-text" style={{ fontSize: "0.85rem" }}>
                     Rate:
                   </span>
-                  <button
-                    type="button"
-                    className={`btn btn-small ${currentCard?.difficulty === 1 ? "btn-success" : "btn-ghost"}`}
-                    onClick={() =>
-                      onSetDifficulty(
-                        currentCard.id,
-                        currentCard?.difficulty === 1 ? 0 : 1
-                      )
-                    }
-                  >
-                    Easy
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-small ${currentCard?.difficulty === 2 ? "btn-danger" : "btn-ghost"}`}
-                    onClick={() =>
-                      onSetDifficulty(
-                        currentCard.id,
-                        currentCard?.difficulty === 2 ? 0 : 2
-                      )
-                    }
-                  >
-                    Hard
-                  </button>
+                  {currentCard.user_id === currentUserId ? (
+                    <>
+                      <button
+                        type="button"
+                        className={`btn btn-small ${currentCard?.difficulty === 1 ? "btn-success" : "btn-ghost"}`}
+                        onClick={() =>
+                          onSetDifficulty(
+                            currentCard.id,
+                            currentCard?.difficulty === 1 ? 0 : 1
+                          )
+                        }
+                      >
+                        Easy
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-small ${currentCard?.difficulty === 2 ? "btn-danger" : "btn-ghost"}`}
+                        onClick={() =>
+                          onSetDifficulty(
+                            currentCard.id,
+                            currentCard?.difficulty === 2 ? 0 : 2
+                          )
+                        }
+                      >
+                        Hard
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {currentCard.difficulty > 0 && (
+                        <span
+                          style={{
+                            fontSize: "0.8rem",
+                            color:
+                              currentCard.difficulty === 1
+                                ? "#16a34a"
+                                : "#dc2626",
+                            fontWeight: 500,
+                          }}
+                          className="muted-text"
+                        >
+                          Owner rated:{" "}
+                          {currentCard.difficulty === 1 ? "Easy" : "Hard"}
+                        </span>
+                      )}
+                      {currentCard.difficulty === 0 && (
+                        <span
+                          className="muted-text"
+                          style={{ fontSize: "0.8rem" }}
+                        >
+                          Not rated yet
+                        </span>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 
