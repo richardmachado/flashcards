@@ -43,6 +43,7 @@ function ManageView({
   currentUserId,
   onRenameDeck,
   onDeleteDeck,
+  onLeaveDeck,
 }) {
   const visibleCards = selectedDeckId // <-- in here, before return
     ? cards.filter((c) => c.deck_id === selectedDeckId)
@@ -61,7 +62,8 @@ function ManageView({
         onShareDeck={onShareDeck}
         onRenameDeck={onRenameDeck}
         onDeleteDeck={onDeleteDeck}
-          loading={loading}
+        loading={loading}
+        onLeaveDeck={onLeaveDeck}
       />
 
       <NewCardForm

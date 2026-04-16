@@ -9,6 +9,7 @@ function DeckSelector({
   onRenameDeck,
   onDeleteDeck,
   loading,
+  onLeaveDeck,
 }) {
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
@@ -18,6 +19,7 @@ function DeckSelector({
 
   const selectedDeck = decks.find((d) => d.id === selectedDeckId);
   const isShared = selectedDeck?.shared === true;
+  const [confirmingLeave, setConfirmingLeave] = useState(false);
 
   function startRename() {
     setRenameValue(selectedDeck?.name || "");
@@ -44,14 +46,13 @@ function DeckSelector({
     setConfirmingDelete(false);
   }
 
-  const isEditing = renaming || creating || confirmingDelete;
+const isEditing = renaming || creating || confirmingDelete || confirmingLeave;
 
   return (
     <div className="card-block">
       <div className="card-block-header">
         <div className="card-block-title">Decks</div>
         <div className="card-block-actions">
-
           {/* Rename / Delete / Share buttons — only when not editing */}
           {!isEditing && !isShared && selectedDeckId && (
             <>
@@ -91,6 +92,7 @@ function DeckSelector({
               </button>
             </>
           )}
+ 
 
           {/* Create save/cancel */}
           {creating && (
@@ -105,11 +107,59 @@ function DeckSelector({
               <button
                 type="button"
                 className="btn btn-gray btn-small"
-                onClick={() => { setCreating(false); setCreateValue(""); }}
+                onClick={() => {
+                  setCreating(false);
+                  setCreateValue("");
+                }}
               >
                 Cancel
               </button>
             </>
+          )}
+          {!isEditing && isShared && selectedDeckId && (
+            <button
+              type="button"
+              className="btn btn-danger btn-small"
+              onClick={() => setConfirmingLeave(true)}
+            >
+              Leave deck
+            </button>
+          )}
+          {confirmingLeave && (
+            <div
+              style={{
+                padding: "0.75rem 1rem",
+                marginBottom: "0.75rem",
+                borderRadius: "6px",
+                border: "1px solid #cf222e",
+                backgroundColor: "#fff0f0",
+                fontSize: "0.9rem",
+              }}
+            >
+              <div style={{ marginBottom: "0.5rem" }}>
+                Remove <strong>{selectedDeck?.name}</strong> from your account?
+                You can ask the owner to share it again.
+              </div>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  type="button"
+                  className="btn btn-danger btn-small"
+                  onClick={async () => {
+                    await onLeaveDeck(selectedDeckId);
+                    setConfirmingLeave(false);
+                  }}
+                >
+                  Yes, remove
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-gray btn-small"
+                  onClick={() => setConfirmingLeave(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Share button */}
@@ -137,7 +187,6 @@ function DeckSelector({
               + New deck
             </button>
           )}
-
         </div>
       </div>
 
@@ -154,7 +203,8 @@ function DeckSelector({
           }}
         >
           <div style={{ marginBottom: "0.5rem" }}>
-            Delete <strong>{selectedDeck?.name}</strong>? This will also delete all cards in it.
+            Delete <strong>{selectedDeck?.name}</strong>? This will also delete
+            all cards in it.
           </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
@@ -175,7 +225,7 @@ function DeckSelector({
         </div>
       )}
 
-            <div className="form-field">
+      <div className="form-field">
         <label>Current deck</label>
         {loading && decks.length === 0 ? (
           <div className="skeleton skeleton-select" />
@@ -198,7 +248,10 @@ function DeckSelector({
             onChange={(e) => setCreateValue(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") handleCreate(e);
-              if (e.key === "Escape") { setCreating(false); setCreateValue(""); }
+              if (e.key === "Escape") {
+                setCreating(false);
+                setCreateValue("");
+              }
             }}
             autoFocus
           />

@@ -220,7 +220,14 @@ const studyCards = cards.filter((card) => {
   const aiRemaining = Math.max(0, aiFreeLimit - aiGenerationsUsed);
   const anySelected = aiGeneratedCards.some((c) => c.selected);
 
- 
+ // user can delete decks that were shared with them
+ async function handleLeaveDeck(deckId) {
+  await api(`/decks/${deckId}/leave`, { method: "DELETE" });
+  setSelectedDeckId("");
+  await loadDecks();
+  await loadCards();
+}
+
   // ---------- quiz handlers (now can safely use studyCards/currentCard) ----------
 
   function handleStudyDeckChange(newDeckId) {
@@ -853,6 +860,7 @@ const studyCards = cards.filter((card) => {
               currentUserId={userId}
               onRenameDeck={handleRenameDeck}
               onDeleteDeck={handleDeleteDeck}
+              onLeaveDeck={handleLeaveDeck}
             />
           )}
 

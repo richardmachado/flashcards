@@ -183,4 +183,22 @@ router.delete("/:deckId/shares/:shareId", async (req, res) => {
   }
 });
 
+router.delete("/:deckId/leave", requireUser, async (req, res) => {
+  const { deckId } = req.params;
+
+  try {
+    const { error } = await supabaseAdmin
+      .from("deck_shares")
+      .delete()
+      .eq("deck_id", deckId)
+      .eq("shared_with_user_id", req.user.id);
+
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    console.error("leave share error:", err);
+    res.status(500).json({ error: "Failed to remove shared deck." });
+  }
+});
+
 module.exports = router;
