@@ -141,4 +141,62 @@ router.delete("/:id", requireUser, async (req, res) => {
   }
 });
 
+//user can copy a deck that was shared with them. This creates a new deck owned by the user with the same cards as the original
+
+router.post("/:id/copy", requireUser, async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+
+  try {
+    // Get the original deck
+    const { data: originalDeck, error: deckError } = await supabaseAdmin
+      .from("decks")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (deckError) throw deckError;
+    if (!originalDeck) return res.status(404).json({ error: "Deck not found" });
+
+    // Create new deck owned by current user
+    const { data: newDeck, error: newDeckError } = await supabaseAdmin
+      .from("decks")
+      .insert([{ name: name || originalDeck.name, user_id: req.user.id }])
+      .select()
+      .single();
+
+    if (newDeckError) throw newDeckError;
+
+    // Get all cards from original deck
+    const { data: originalCards, error: cardsError } = await supabaseAdmin
+      .from("cards")
+      .select("front, back, difficulty")
+      .eq("deck_id", id);
+
+    if (cardsError) throw cardsError;
+
+    // Copy cards to new deck
+    if (originalCards && originalCards.length > 0) {
+      const newCards = originalCards.map((c) => ({
+        front: c.front,
+        back: c.back,
+        difficulty: 0,  // reset difficulty for new owner
+        deck_id: newDeck.id,
+        user_id: req.user.id,
+      }));
+
+      const { error: insertError } = await supabaseAdmin
+        .from("cards")
+        .insert(newCards);
+
+      if (insertError) throw insertError;
+    }
+
+    res.json({ deck: newDeck });
+  } catch (err) {
+    console.error("copy deck error:", err);
+    res.status(500).json({ error: "Failed to copy deck." });
+  }
+});
+
 module.exports = router;

@@ -44,6 +44,7 @@ function ManageView({
   onRenameDeck,
   onDeleteDeck,
   onLeaveDeck,
+  onCopyDeck,
 }) {
   const visibleCards = selectedDeckId // <-- in here, before return
     ? cards.filter((c) => c.deck_id === selectedDeckId)
@@ -64,6 +65,7 @@ function ManageView({
         onDeleteDeck={onDeleteDeck}
         loading={loading}
         onLeaveDeck={onLeaveDeck}
+        onCopyDeck={onCopyDeck}
       />
 
       <NewCardForm

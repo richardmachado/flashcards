@@ -611,6 +611,15 @@ const studyCards = cards.filter((card) => {
     await loadCards();
   }
 
+  async function handleCopyDeck(deckId, name) {
+  await api(`/decks/${deckId}/copy`, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+  await loadDecks();
+  await loadCards();
+}
+
   function handleLogout() {
     setToken("");
     setUserEmail("");
@@ -861,6 +870,7 @@ const studyCards = cards.filter((card) => {
               onRenameDeck={handleRenameDeck}
               onDeleteDeck={handleDeleteDeck}
               onLeaveDeck={handleLeaveDeck}
+              onCopyDeck={handleCopyDeck}
             />
           )}
 
