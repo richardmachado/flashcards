@@ -36,6 +36,12 @@ function CardList({
     
     <div className="card-block">
       <h2 className="section-title">Your cards</h2>
+      {cards.some((c) => c.difficulty === 2) && (
+  <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.75rem", fontSize: "0.8rem" }} className="muted-text">
+    <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#dc2626" }} />
+    Hard card
+  </div>
+)}
       <div className="cards-grid">
         {cards.map((card) => (
           
@@ -77,7 +83,20 @@ function CardList({
               </form>
             ) : (
               <>
-                <div className="card-item-front">{card.front}</div>
+                <div className="card-item-front">
+  {card.difficulty === 2 && (
+    <span style={{
+      display: "inline-block",
+      width: "8px",
+      height: "8px",
+      borderRadius: "50%",
+      backgroundColor: "#dc2626",
+      marginRight: "6px",
+      verticalAlign: "middle",
+    }} />
+  )}
+  {card.front}
+</div>
                 <div className="card-item-back">{card.back}</div>
                 <div className="card-item-footer">
     <div className="card-item-deck">

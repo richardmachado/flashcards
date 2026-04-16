@@ -73,6 +73,12 @@ function App() {
 
   const [upgradeError, setUpgradeError] = useState("");
 
+  //card difficulty filter
+  const [hardOnly, setHardOnly] = useState(false);
+ const [quizCardDifficulty, setQuizCardDifficulty] = useState(null);
+
+
+
   // ---------- helpers that don't depend on derived values ----------
 
   const shuffleArray = useCallback((arr) => {
@@ -193,8 +199,15 @@ function App() {
 
   // ---------- derived values that depend on cards/decks ----------
 
-  const studyCards = cards.filter(
-    (card) => !selectedDeckId || card.deck_id === selectedDeckId
+const studyCards = cards.filter((card) => {
+  const inDeck = !selectedDeckId || card.deck_id === selectedDeckId;
+  const passesFilter = !hardOnly || card.difficulty === 2;
+  return inDeck && passesFilter;
+});
+
+ const hasHardCards = cards.some(
+    (c) =>
+      (!selectedDeckId || c.deck_id === selectedDeckId) && c.difficulty === 2
   );
 
   const currentIndex =
@@ -207,6 +220,7 @@ function App() {
   const aiRemaining = Math.max(0, aiFreeLimit - aiGenerationsUsed);
   const anySelected = aiGeneratedCards.some((c) => c.selected);
 
+ 
   // ---------- quiz handlers (now can safely use studyCards/currentCard) ----------
 
   function handleStudyDeckChange(newDeckId) {
@@ -251,6 +265,7 @@ function App() {
     setQuizScore(0);
     setQuizCompleted(false);
     setQuizTotal(studyCards.length);
+     setQuizCardDifficulty(studyCards[0]?.difficulty ?? null);
 
     const firstCard = studyCards[0];
     setQuizOptions(buildQuizOptions(firstCard, studyCards));
@@ -287,6 +302,7 @@ function App() {
     setSelectedAnswer("");
     setQuizFeedback("");
     setQuizOptions(buildQuizOptions(nextCard, studyCards));
+     setQuizCardDifficulty(nextCard?.difficulty ?? null);
   }
 
   function startStudy() {
@@ -510,6 +526,20 @@ function App() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+    async function handleSetDifficulty(cardId, difficulty) {
+    try {
+      await api(`/cards/${cardId}`, {
+        method: "PUT",
+        body: JSON.stringify({ difficulty }),
+      });
+      setCards((prev) =>
+        prev.map((c) => (c.id === cardId ? { ...c, difficulty } : c))
+      );
+    } catch (err) {
+      console.error("difficulty update error:", err);
     }
   }
 
@@ -859,6 +889,11 @@ function App() {
               setStudyMode={setStudyMode}
               isPro={isPro}
               onUpgrade={handleUpgrade}
+              hardOnly={hardOnly}
+              setHardOnly={setHardOnly}
+              hasHardCards={hasHardCards}
+              onSetDifficulty={handleSetDifficulty}
+              quizCardDifficulty={quizCardDifficulty}
             />
           )}
           {shareDeck && (

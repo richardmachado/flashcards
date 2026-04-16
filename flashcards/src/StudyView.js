@@ -33,6 +33,11 @@ function StudyView({
   token,
   isPro,
   onUpgrade,
+  hardOnly,
+  setHardOnly,
+  hasHardCards,
+  onSetDifficulty,
+  quizCardDifficulty,
 }) {
   const canQuiz = studyCards.length >= 4;
 
@@ -75,6 +80,15 @@ function StudyView({
             >
               Flashcards
             </button>
+            {hasHardCards && (
+              <button
+                type="button"
+                className={`btn btn-small ${hardOnly ? "btn-danger" : "btn-ghost"}`}
+                onClick={() => setHardOnly((v) => !v)}
+              >
+                {hardOnly ? "Hard cards only: ON" : "Hard cards only"}
+              </button>
+            )}
 
             <button
               type="button"
@@ -192,9 +206,64 @@ function StudyView({
                 {quizFeedback && (
                   <div
                     className="muted-text"
-                    style={{ marginTop: "0.75rem", marginBottom: "1rem" }}
+                    style={{ marginTop: "0.75rem", marginBottom: "0.5rem" }}
                   >
                     {quizFeedback}
+                  </div>
+                )}
+
+                {selectedAnswer && currentCard && (
+                  <div style={{ marginBottom: "1rem" }}>
+                    {quizCardDifficulty > 0 && (
+                      <div
+                        style={{ fontSize: "0.8rem", marginBottom: "0.4rem" }}
+                        className="muted-text"
+                      >
+                        Previously rated:{" "}
+                        <strong>
+                          {currentCard.difficulty === 1 ? "Easy" : "Hard"}
+                        </strong>{" "}
+                        — update if needed
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "0.5rem",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span
+                        className="muted-text"
+                        style={{ fontSize: "0.85rem" }}
+                      >
+                        Rate:
+                      </span>
+                      <button
+                        type="button"
+                        className={`btn btn-tiny ${currentCard.difficulty === 1 ? "btn-success" : "btn-ghost"}`}
+                        onClick={() =>
+                          onSetDifficulty(
+                            currentCard.id,
+                            currentCard.difficulty === 1 ? 0 : 1
+                          )
+                        }
+                      >
+                        Easy
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-tiny ${currentCard.difficulty === 2 ? "btn-danger" : "btn-ghost"}`}
+                        onClick={() =>
+                          onSetDifficulty(
+                            currentCard.id,
+                            currentCard.difficulty === 2 ? 0 : 2
+                          )
+                        }
+                      >
+                        Hard
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -308,6 +377,41 @@ function StudyView({
                   ⟩
                 </button>
               </div>
+
+              {showBack && currentCard && (
+                <div
+                  className="study-controls"
+                  style={{ marginBottom: "0.5rem" }}
+                >
+                  <span className="muted-text" style={{ fontSize: "0.85rem" }}>
+                    Rate:
+                  </span>
+                  <button
+                    type="button"
+                    className={`btn btn-small ${currentCard?.difficulty === 1 ? "btn-success" : "btn-ghost"}`}
+                    onClick={() =>
+                      onSetDifficulty(
+                        currentCard.id,
+                        currentCard?.difficulty === 1 ? 0 : 1
+                      )
+                    }
+                  >
+                    Easy
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-small ${currentCard?.difficulty === 2 ? "btn-danger" : "btn-ghost"}`}
+                    onClick={() =>
+                      onSetDifficulty(
+                        currentCard.id,
+                        currentCard?.difficulty === 2 ? 0 : 2
+                      )
+                    }
+                  >
+                    Hard
+                  </button>
+                </div>
+              )}
 
               <div className="study-controls">
                 <button

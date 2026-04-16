@@ -58,7 +58,7 @@ Keep questions short and concrete. Max 10 cards.
         { role: "user", content: userPrompt },
       ],
       response_format: { type: "json_object" },
-      temperature: 0.5,
+      temperature: 0.9,
       max_tokens: 600,
     });
 
@@ -132,7 +132,8 @@ router.post("/generate-test", requireUser, async (req, res) => {
 
     if (!isPro && testsUsed >= freeLimit) {
       return res.status(403).json({
-        error: "You've used all 3 free AI tests. Upgrade to Pro for unlimited tests.",
+        error:
+          "You've used all 3 free AI tests. Upgrade to Pro for unlimited tests.",
         is_pro: false,
         ai_tests_used: testsUsed,
         ai_tests_free_limit: freeLimit,
@@ -141,10 +142,12 @@ router.post("/generate-test", requireUser, async (req, res) => {
 
     const systemPrompt = `
 You are a test generator. Given flashcards with a front (concept) and back (answer), generate one test question per card.
-Mix the question types evenly: multiple_choice, true_false, and fill_blank.
+Mix the question types evenly across multiple_choice, true_false, and fill_blank, but randomize the order throughout the test so the same type never appears in a predictable pattern: multiple_choice, true_false, and fill_blank.
 For fill_blank, replace one or two key words in the answer with ___ .
 For multiple_choice, generate 3 plausible but wrong distractors based on the topic.
 For true_false, sometimes make the statement false by altering a key detail.
+Every time you generate a test, vary the questions, phrasing, distractors, and true/false statements so repeated tests feel different.
+Never reuse the exact same question wording or distractors from a previous generation.
 
 Return STRICT JSON only, as an array:
 [
@@ -190,14 +193,23 @@ Return exactly one question per card, in the same order.
     try {
       parsed = JSON.parse(content);
     } catch (e) {
-      return res.status(500).json({ error: "Model did not return valid JSON.", raw: content });
+      return res
+        .status(500)
+        .json({ error: "Model did not return valid JSON.", raw: content });
     }
 
-    const questions = Array.isArray(parsed) ? parsed : parsed.questions || parsed.test || [];
+    const questions = Array.isArray(parsed)
+      ? parsed
+      : parsed.questions || parsed.test || [];
 
     if (!questions.length) {
-      return res.status(500).json({ error: "No questions returned.", raw: parsed });
+      return res
+        .status(500)
+        .json({ error: "No questions returned.", raw: parsed });
     }
+
+    // Shuffle questions so order is always different
+    const shuffled = [...questions].sort(() => Math.random() - 0.5);
 
     // Increment usage for free users
     if (!isPro) {
@@ -207,7 +219,7 @@ Return exactly one question per card, in the same order.
         .eq("id", req.user.id);
     }
 
-    res.json({ questions, ai_tests_used: testsUsed + 1 });
+    res.json({ questions: shuffled, ai_tests_used: testsUsed + 1 });
   } catch (err) {
     console.error("generate-test error:", err.response?.data || err.message);
     res.status(500).json({ error: "Failed to generate test." });
