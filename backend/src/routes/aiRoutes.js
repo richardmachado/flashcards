@@ -3,6 +3,10 @@ const requireUser = require("../middleware/requireUser");
 const { supabaseAdmin } = require("../config/supabase");
 const { deepseek } = require("../../deepseekClient");
 
+const multer = require("multer");
+
+const pdfParse = require("pdf-parse");
+
 const router = express.Router();
 
 router.post("/test-generate-cards", requireUser, async (req, res) => {
@@ -274,6 +278,126 @@ router.get("/test-scores", requireUser, async (req, res) => {
   } catch (err) {
     console.error("get test scores error:", err);
     res.status(500).json({ error: "Failed to load scores." });
+  }
+});
+
+// pdf reader
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowed = ["application/pdf", "text/plain"];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only PDF and text files are allowed."));
+    }
+  },
+});
+
+router.post("/upload-and-generate", requireUser, upload.single("file"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded." });
+  }
+
+  try {
+    // Check usage limit
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("is_pro, ai_generations_used, ai_free_limit")
+      .eq("id", req.user.id)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+
+    const isPro = !!profile?.is_pro;
+    const used = profile?.ai_generations_used ?? 0;
+    const freeLimit = profile?.ai_free_limit ?? 3;
+
+    if (!isPro && used >= freeLimit) {
+      return res.status(403).json({
+        error: "You've used all 3 free AI generations. Upgrade to Pro to keep generating cards.",
+        is_pro: false,
+        ai_generations_used: used,
+        ai_free_limit: freeLimit,
+      });
+    }
+
+    // Extract text from file
+    let text = "";
+
+    if (req.file.mimetype === "application/pdf") {
+      const pdfData = await pdfParse(req.file.buffer);
+      text = pdfData.text;
+    } else {
+      text = req.file.buffer.toString("utf-8");
+    }
+
+    // Trim to avoid token limits — first 4000 characters
+    text = text.slice(0, 4000).trim();
+
+    if (text.length < 30) {
+      return res.status(400).json({ error: "Could not extract enough text from the file." });
+    }
+
+    const systemPrompt = `
+You convert study material into flashcards for active recall.
+Return STRICT JSON only, with this shape:
+{
+  "cards": [
+    { "front": "question text", "back": "answer text" }
+  ]
+}
+Keep questions short and concrete. Max 10 cards.
+`.trim();
+
+    const userPrompt = `Create flashcards from this material:\n\n${text}`;
+
+    const response = await deepseek.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.5,
+      max_tokens: 600,
+    });
+
+    const content = response.choices[0]?.message?.content || "{}";
+    let parsed;
+
+    try {
+      parsed = JSON.parse(content);
+    } catch (e) {
+      return res.status(500).json({ error: "Model did not return valid JSON.", raw: content });
+    }
+
+    if (!parsed.cards || !Array.isArray(parsed.cards)) {
+      return res.status(500).json({ error: "JSON has unexpected structure.", raw: parsed });
+    }
+
+    // Increment usage for free users
+    let nextUsed = used;
+    if (!isPro) {
+      nextUsed = used + 1;
+      await supabaseAdmin
+        .from("profiles")
+        .update({ ai_generations_used: nextUsed })
+        .eq("id", req.user.id);
+    }
+
+    res.json({
+      cards: parsed.cards,
+      is_pro: isPro,
+      ai_generations_used: nextUsed,
+      ai_free_limit: freeLimit,
+      ai_remaining: isPro ? null : Math.max(0, freeLimit - nextUsed),
+    });
+  } catch (err) {
+    console.error("upload generate error:", err.message);
+    res.status(500).json({ error: "Failed to process file." });
   }
 });
 

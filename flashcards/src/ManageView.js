@@ -45,6 +45,7 @@ function ManageView({
   onDeleteDeck,
   onLeaveDeck,
   onCopyDeck,
+  onUploadGenerate,
 }) {
   const visibleCards = selectedDeckId // <-- in here, before return
     ? cards.filter((c) => c.deck_id === selectedDeckId)
@@ -55,16 +56,24 @@ function ManageView({
 
   return (
     <>
-    {error && (
-      <div className="error-text" style={{ marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
-        {error}
-        {error.includes("Upgrade to Pro") && (
-          <button className="btn btn-primary btn-small" onClick={onUpgrade}>
-            Go Pro
-          </button>
-        )}
-      </div>
-    )}
+      {error && (
+        <div
+          className="error-text"
+          style={{
+            marginBottom: "0.75rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+          }}
+        >
+          {error}
+          {error.includes("Upgrade to Pro") && (
+            <button className="btn btn-primary btn-small" onClick={onUpgrade}>
+              Go Pro
+            </button>
+          )}
+        </div>
+      )}
       <DeckSelector
         decks={decks}
         selectedDeckId={selectedDeckId}
@@ -105,6 +114,7 @@ function ManageView({
           aiFreeLimit={aiFreeLimit}
           aiRemaining={aiRemaining}
           onUpgrade={onUpgrade}
+          onUploadGenerate={onUploadGenerate}
         />
       )}
 

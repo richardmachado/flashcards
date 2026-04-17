@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 
 function AIGenerator({
- aiSourceText,
+  aiSourceText,
   setAiSourceText,
   aiError,
   aiLoading,
@@ -15,13 +15,42 @@ function AIGenerator({
   aiFreeLimit,
   aiRemaining,
   onUpgrade,
+  onUploadGenerate,
 }) {
+  const fileInputRef = useRef(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [fileName, setFileName] = useState("");
+
+  async function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setFileName(file.name);
+    setUploadError("");
+    setUploadLoading(true);
+
+    try {
+      await onUploadGenerate(file);
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploadLoading(false);
+      // Reset input so same file can be re-uploaded
+      e.target.value = "";
+    }
+  }
+
+  const isLoading = aiLoading || uploadLoading;
+  const atLimit = !isPro && aiRemaining <= 0;
+
   return (
     <div className="card-block">
       <h2 className="section-title">Generate cards with AI</h2>
       <p className="muted-text">
-        Paste your notes below, then click <strong>Generate</strong>. Review the
-        suggested cards and save them into the selected deck.
+        Paste your notes or upload a PDF/text file, then click{" "}
+        <strong>Generate</strong>. Review the suggested cards and save them into
+        the selected deck.
       </p>
 
       {!isPro && (
@@ -33,10 +62,44 @@ function AIGenerator({
       )}
 
       {isPro && (
-        <p className="muted-text">
-          Pro plan: unlimited AI generations
-        </p>
+        <p className="muted-text">Pro plan: unlimited AI generations</p>
       )}
+
+      {/* Upload section */}
+      <div style={{ marginBottom: "0.75rem" }}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.txt"
+          style={{ display: "none" }}
+          onChange={handleFileUpload}
+        />
+        <button
+          type="button"
+          className="btn btn-gray btn-small"
+          onClick={() => fileInputRef.current.click()}
+          disabled={isLoading || atLimit}
+        >
+          {uploadLoading ? "Processing..." : "Upload PDF or text file"}
+        </button>
+        {fileName && !uploadLoading && (
+          <span className="muted-text" style={{ marginLeft: "0.6rem", fontSize: "0.85rem" }}>
+            {fileName}
+          </span>
+        )}
+        {uploadError && (
+          <div className="error-text" style={{ marginTop: "0.4rem" }}>
+            {uploadError}
+          </div>
+        )}
+      </div>
+
+      {/* Divider */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
+        <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
+        <span className="muted-text" style={{ fontSize: "0.8rem" }}>or paste text</span>
+        <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
+      </div>
 
       <div className="form-field">
         <label>Source text for this deck</label>
@@ -54,12 +117,12 @@ function AIGenerator({
         type="button"
         className="btn btn-primary"
         onClick={onGenerate}
-        disabled={aiLoading || !aiSourceText.trim() || (!isPro && aiRemaining <= 0)}
+        disabled={isLoading || !aiSourceText.trim() || atLimit}
       >
         {aiLoading ? "Generating..." : "Generate cards"}
       </button>
 
-      {!isPro && aiRemaining <= 0 && (
+      {atLimit && (
         <button
           type="button"
           className="btn btn-small"
@@ -80,8 +143,7 @@ function AIGenerator({
               <div
                 key={idx}
                 className={
-                  "generated-card" +
-                  (c.selected ? " generated-card-selected" : "")
+                  "generated-card" + (c.selected ? " generated-card-selected" : "")
                 }
               >
                 <div className="generated-card-header">
@@ -110,9 +172,9 @@ function AIGenerator({
             type="button"
             className="btn btn-success"
             onClick={onSaveGenerated}
-            disabled={aiLoading || !anySelected}
+            disabled={isLoading || !anySelected}
           >
-            {aiLoading ? "Saving..." : "Save selected to deck"}
+            {isLoading ? "Saving..." : "Save selected to deck"}
           </button>
         </>
       )}

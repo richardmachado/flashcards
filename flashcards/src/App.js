@@ -451,6 +451,45 @@ function App() {
     }
   }
 
+  async function handleUploadGenerate(file) {
+  if (!selectedDeckId) return;
+
+  setAiError("");
+  setAiLoading(true);
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch(`${API_URL}/ai/upload-and-generate`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // don't set Content-Type — browser sets it automatically with boundary for FormData
+      },
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to generate cards");
+
+    const newCards = Array.isArray(data.cards) ? data.cards : [];
+    setAiGeneratedCards(newCards.map((c) => ({ ...c, selected: true })));
+
+    if (typeof data.ai_generations_used === "number") {
+      setAiGenerationsUsed(data.ai_generations_used);
+    }
+    if (typeof data.ai_free_limit === "number") {
+      setAiFreeLimit(data.ai_free_limit);
+    }
+  } catch (err) {
+    setAiError(err.message);
+    setAiGeneratedCards([]);
+  } finally {
+    setAiLoading(false);
+  }
+}
+
   async function handleGenerateFromText(e) {
     e.preventDefault();
     if (!aiSourceText.trim() || !selectedDeckId) return;
@@ -865,6 +904,7 @@ function App() {
               onDeleteDeck={handleDeleteDeck}
               onLeaveDeck={handleLeaveDeck}
               onCopyDeck={handleCopyDeck}
+              onUploadGenerate={handleUploadGenerate}
             />
           )}
 
