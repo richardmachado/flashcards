@@ -55,6 +55,16 @@ function ManageView({
 
   return (
     <>
+    {error && (
+      <div className="error-text" style={{ marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        {error}
+        {error.includes("Upgrade to Pro") && (
+          <button className="btn btn-primary btn-small" onClick={onUpgrade}>
+            Go Pro
+          </button>
+        )}
+      </div>
+    )}
       <DeckSelector
         decks={decks}
         selectedDeckId={selectedDeckId}
@@ -77,7 +87,6 @@ function ManageView({
         setFront={setFront}
         setBack={setBack}
         loading={loading}
-        error={error}
         onSubmit={onCreateCard}
       />
       {!isShared && (

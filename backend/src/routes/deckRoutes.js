@@ -12,6 +12,26 @@ router.post("/", requireUser, async (req, res) => {
   }
 
   try {
+    // Check deck limit for free users
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("is_pro")
+      .eq("id", req.user.id)
+      .maybeSingle();
+
+    if (!profile?.is_pro) {
+      const { count } = await supabaseAdmin
+        .from("decks")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", req.user.id);
+
+      if (count >= 3) {
+        return res.status(403).json({
+          error: "Free accounts are limited to 3 decks. Upgrade to Pro for unlimited decks.",
+        });
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from("decks")
       .insert([{ name: name.trim(), user_id: req.user.id }])

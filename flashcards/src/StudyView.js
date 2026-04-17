@@ -36,11 +36,19 @@ function StudyView({
   hardOnly,
   setHardOnly,
   hasHardCards,
-  onSetDifficulty,
-  quizCardDifficulty,
+  onSetDifficulty,  
   currentUserId,
 }) {
   const canQuiz = studyCards.length >= 4;
+
+  const isQuizMode = studyMode === "quiz";
+  const progressCurrent = studyCards.length
+    ? (isQuizMode ? studyIndex + 1 : currentIndex + 1)
+    : 0;
+  const progressTotal = studyCards.length;
+  const progressPercent =
+    progressTotal > 0 ? (progressCurrent / progressTotal) * 100 : 0;
+  
 
   return (
     <div className="card-block">
@@ -132,6 +140,33 @@ function StudyView({
               AI Test
             </button>
           </div>
+
+           {studyMode !== "test" && progressTotal > 0 && !isShuffled  && (
+            <div className="study-progress-wrap">
+              <div className="study-progress-top">
+                <span className="study-progress-label">
+                  {studyMode === "quiz" ? "Quiz progress" : "Study progress"}
+                </span>
+                <span className="study-progress-count">
+                  {progressCurrent} / {progressTotal}
+                </span>
+              </div>
+
+              <div
+                className="study-progress-bar"
+                role="progressbar"
+                aria-label={studyMode === "quiz" ? "Quiz progress" : "Study progress"}
+                aria-valuemin={0}
+                aria-valuemax={progressTotal}
+                aria-valuenow={progressCurrent}
+              >
+                <div
+                  className="study-progress-fill"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           {!canQuiz && studyMode === "quiz" && (
             <div className="muted-text" style={{ marginBottom: "1rem" }}>

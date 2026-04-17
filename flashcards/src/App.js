@@ -75,9 +75,6 @@ function App() {
 
   //card difficulty filter
   const [hardOnly, setHardOnly] = useState(false);
- const [quizCardDifficulty, setQuizCardDifficulty] = useState(null);
-
-
 
   // ---------- helpers that don't depend on derived values ----------
 
@@ -199,13 +196,13 @@ function App() {
 
   // ---------- derived values that depend on cards/decks ----------
 
-const studyCards = cards.filter((card) => {
-  const inDeck = !selectedDeckId || card.deck_id === selectedDeckId;
-  const passesFilter = !hardOnly || card.difficulty === 2;
-  return inDeck && passesFilter;
-});
+  const studyCards = cards.filter((card) => {
+    const inDeck = !selectedDeckId || card.deck_id === selectedDeckId;
+    const passesFilter = !hardOnly || card.difficulty === 2;
+    return inDeck && passesFilter;
+  });
 
- const hasHardCards = cards.some(
+  const hasHardCards = cards.some(
     (c) =>
       (!selectedDeckId || c.deck_id === selectedDeckId) && c.difficulty === 2
   );
@@ -220,13 +217,13 @@ const studyCards = cards.filter((card) => {
   const aiRemaining = Math.max(0, aiFreeLimit - aiGenerationsUsed);
   const anySelected = aiGeneratedCards.some((c) => c.selected);
 
- // user can delete decks that were shared with them
- async function handleLeaveDeck(deckId) {
-  await api(`/decks/${deckId}/leave`, { method: "DELETE" });
-  setSelectedDeckId("");
-  await loadDecks();
-  await loadCards();
-}
+  // user can delete decks that were shared with them
+  async function handleLeaveDeck(deckId) {
+    await api(`/decks/${deckId}/leave`, { method: "DELETE" });
+    setSelectedDeckId("");
+    await loadDecks();
+    await loadCards();
+  }
 
   // ---------- quiz handlers (now can safely use studyCards/currentCard) ----------
 
@@ -272,7 +269,6 @@ const studyCards = cards.filter((card) => {
     setQuizScore(0);
     setQuizCompleted(false);
     setQuizTotal(studyCards.length);
-     setQuizCardDifficulty(studyCards[0]?.difficulty ?? null);
 
     const firstCard = studyCards[0];
     setQuizOptions(buildQuizOptions(firstCard, studyCards));
@@ -309,7 +305,6 @@ const studyCards = cards.filter((card) => {
     setSelectedAnswer("");
     setQuizFeedback("");
     setQuizOptions(buildQuizOptions(nextCard, studyCards));
-     setQuizCardDifficulty(nextCard?.difficulty ?? null);
   }
 
   function startStudy() {
@@ -444,18 +439,13 @@ const studyCards = cards.filter((card) => {
     try {
       await api("/cards", {
         method: "POST",
-        body: JSON.stringify({
-          front,
-          back,
-          deck_id: selectedDeckId,
-        }),
+        body: JSON.stringify({ front, back, deck_id: selectedDeckId }),
       });
-
       setFront("");
       setBack("");
       await loadCards();
     } catch (err) {
-      setError(err.message);
+      setError(err.message); // will show the limit message inline
     } finally {
       setLoading(false);
     }
@@ -536,7 +526,7 @@ const studyCards = cards.filter((card) => {
     }
   }
 
-    async function handleSetDifficulty(cardId, difficulty) {
+  async function handleSetDifficulty(cardId, difficulty) {
     try {
       await api(`/cards/${cardId}`, {
         method: "PUT",
@@ -612,13 +602,13 @@ const studyCards = cards.filter((card) => {
   }
 
   async function handleCopyDeck(deckId, name) {
-  await api(`/decks/${deckId}/copy`, {
-    method: "POST",
-    body: JSON.stringify({ name }),
-  });
-  await loadDecks();
-  await loadCards();
-}
+    await api(`/decks/${deckId}/copy`, {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+    await loadDecks();
+    await loadCards();
+  }
 
   function handleLogout() {
     setToken("");
@@ -829,11 +819,15 @@ const studyCards = cards.filter((card) => {
               selectedDeckId={selectedDeckId}
               setSelectedDeckId={setSelectedDeckId}
               onCreateDeck={async (name) => {
-                await api("/decks", {
-                  method: "POST",
-                  body: JSON.stringify({ name }),
-                });
-                await loadDecks();
+                try {
+                  await api("/decks", {
+                    method: "POST",
+                    body: JSON.stringify({ name }),
+                  });
+                  await loadDecks();
+                } catch (err) {
+                  setError(err.message); // will show the limit message inline
+                }
               }}
               cards={cards}
               front={front}
@@ -911,8 +905,7 @@ const studyCards = cards.filter((card) => {
               setHardOnly={setHardOnly}
               hasHardCards={hasHardCards}
               onSetDifficulty={handleSetDifficulty}
-              quizCardDifficulty={quizCardDifficulty}
-               currentUserId={userId}
+              currentUserId={userId}
             />
           )}
           {shareDeck && (
