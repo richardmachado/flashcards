@@ -736,85 +736,114 @@ function App() {
   return (
     <div className="app-root">
       {!token ? (
-        <div className="landing-page">
-          <nav className="landing-nav">
-            <div className="landing-logo">Study My Cards</div>
-          </nav>
+ <div className="landing-page">
+  <nav className="landing-nav">
+    <div className="landing-logo">Study My Cards</div>
+  </nav>
 
-          <section className="landing-hero">
-            <div className="landing-copy">
-              <div className="landing-eyebrow">Built for college students</div>
-              <h1 className="landing-title">
-                Study smarter for your next exam
-              </h1>
-              <p className="landing-subtitle">
-                Create flashcards, organize decks, quiz yourself, and turn notes
-                into study material faster.
-              </p>
+  <section className="landing-hero">
+    <div className="landing-copy">
+      <div className="landing-eyebrow">Built for college students</div>
+      <h1 className="landing-title">
+        Study smarter for your next exam
+      </h1>
+      <p className="landing-subtitle">
+        Create flashcard decks, quiz yourself, and let AI generate
+        cards and full tests from your notes — so you actually know
+        the material, not just recognize it.
+      </p>
 
-              <div className="landing-points">
-                <div>Organize material by class or exam</div>
-                <div>Review with flashcards and quiz mode</div>
-                <div>Generate cards from notes with AI</div>
-                <div>Generate tests with AI to test your knowledge</div>
-              </div>
-            </div>
+      <div className="landing-points">
+        <div>📚 Organize decks by class, unit, or exam</div>
+        <div>🃏 Flashcards with spaced repetition — mark Easy or Hard</div>
+        <div>📝 Quiz mode and AI-powered tests with multiple choice, true/false, and fill-in-the-blank</div>
+        <div>🤖 Generate cards from pasted notes or uploaded PDFs</div>
+        <div>🤝 Share decks with classmates</div>
+      </div>
+    </div>
 
-            <div className="landing-auth">
-              <AuthForm
-                mode={mode}
-                setMode={setMode}
-                email={email}
-                setEmail={setEmail}
-                password={password}
-                setPassword={setPassword}
-                error={error}
-                loading={loading}
-                onSubmit={handleAuth}
-                onForgotPassword={handleForgotPassword}
-                forgotMessage={forgotMessage}
-              />
-            </div>
-          </section>
+    <div className="landing-auth">
+      <AuthForm
+        mode={mode}
+        setMode={setMode}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        error={error}
+        loading={loading}
+        onSubmit={handleAuth}
+        onForgotPassword={handleForgotPassword}
+        forgotMessage={forgotMessage}
+      />
+    </div>
+  </section>
 
-          <section className="landing-features">
-            <div className="feature-card">
-              <h3>Organize your classes</h3>
-              <p>
-                Create decks for each course, unit, or exam so your study
-                material stays structured.
-              </p>
-            </div>
+  <section className="landing-features">
+    <div className="feature-card">
+      <h3>AI card generation</h3>
+      <p>
+        Paste your lecture notes or upload a PDF and AI instantly
+        creates flashcards from your material. Save hours of manual
+        card creation.
+      </p>
+    </div>
 
-            <div className="feature-card">
-              <h3>Study actively</h3>
-              <p>
-                Use flashcards and quiz mode to test recall instead of passively
-                rereading notes.
-              </p>
-            </div>
+    <div className="feature-card">
+      <h3>AI-powered tests</h3>
+      <p>
+        Generate a real test from your flashcards with multiple
+        choice, true/false, and fill-in-the-blank questions — auto
+        graded with a score history so you can track improvement.
+      </p>
+    </div>
 
-            <div className="feature-card">
-              <h3>Save time with AI</h3>
-              <p>
-                Turn source text into study cards faster when you need to review
-                a lot of material.
-              </p>
-            </div>
-          </section>
+    <div className="feature-card">
+      <h3>Spaced repetition</h3>
+      <p>
+        Mark cards as Easy or Hard as you study. Filter to hard
+        cards only and focus your time where it actually matters.
+      </p>
+    </div>
 
-          <section className="landing-pricing">
-            <h2>Start free</h2>
-            <p>
-              Use core study tools for free, then upgrade when you want more
-              advanced features.
-            </p>
-          </section>
+    <div className="feature-card">
+      <h3>Share with classmates</h3>
+      <p>
+        Share any deck with a classmate by email. They can study
+        your cards, copy the deck to their account, or collaborate
+        on material together.
+      </p>
+    </div>
 
-          <footer className="landing-footer">
-            <p>Made for focused exam prep.</p>
-          </footer>
-        </div>
+    <div className="feature-card">
+      <h3>Quiz mode</h3>
+      <p>
+        Test yourself with multiple choice questions generated from
+        your own card answers — no manual question writing needed.
+      </p>
+    </div>
+
+    <div className="feature-card">
+      <h3>Organize by class</h3>
+      <p>
+        Create separate decks for each course or exam. Switch
+        between them instantly and study exactly what you need.
+      </p>
+    </div>
+  </section>
+
+  <section className="landing-pricing">
+    <h2>Start free</h2>
+    <p>
+      Free plan includes 3 decks, 100 cards, 3 AI card generations,
+      and 3 AI tests. Upgrade to Pro for unlimited everything.
+    </p>
+  </section>
+
+  <footer className="landing-footer">
+    <p>Made for focused exam prep.</p>
+  </footer>
+</div>
       ) : (
         <>
           <HeaderBar
