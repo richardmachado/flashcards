@@ -16,9 +16,22 @@ router.post("/signup", async (req, res) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
 
+    if (!data?.user?.id) {
+      throw new Error("User was created without an id");
+    }
+
+    const { error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .upsert({
+        id: data.user.id,
+        email: data.user.email,
+      });
+
+    if (profileError) throw profileError;
+
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("is_pro")
+      .select("is_pro, email")
       .eq("id", data.user.id)
       .maybeSingle();
 
@@ -26,6 +39,7 @@ router.post("/signup", async (req, res) => {
       user: {
         ...data.user,
         is_pro: !!profile?.is_pro,
+        profile_email: profile?.email ?? null,
       },
       access_token: data.session?.access_token,
     });
