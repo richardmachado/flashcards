@@ -36,6 +36,8 @@ function HeaderBar({
             </button>
           )}
 
+        
+
           <button
             className="btn btn-danger btn-small"
             onClick={onLogout}

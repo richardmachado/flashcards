@@ -5,6 +5,7 @@ import HeaderBar from "./HeaderBar";
 import ManageView from "./ManageView";
 import StudyView from "./StudyView";
 import ShareDeckModal from "./ShareDeckModal";
+import AdminPage from "./AdminPage";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:4000";
 
@@ -16,6 +17,9 @@ function App() {
   );
   const [isPro, setIsPro] = useState(
     JSON.parse(localStorage.getItem("isPro") || "false")
+  );
+  const [isAdmin, setIsAdmin] = useState(
+    JSON.parse(localStorage.getItem("isAdmin") || "false")
   );
 
   // Auth form
@@ -64,16 +68,16 @@ function App() {
   const [aiGenerationsUsed, setAiGenerationsUsed] = useState(0);
   const [aiFreeLimit, setAiFreeLimit] = useState(3);
 
-  //share deck
+  // share deck
   const [shareDeck, setShareDeck] = useState(null);
   const [userId, setUserId] = useState(localStorage.getItem("userId") || "");
 
-  //forgot password
+  // forgot password
   const [forgotMessage, setForgotMessage] = useState("");
 
   const [upgradeError, setUpgradeError] = useState("");
 
-  //card difficulty filter
+  // card difficulty filter
   const [hardOnly, setHardOnly] = useState(false);
 
   // ---------- helpers that don't depend on derived values ----------
@@ -172,27 +176,39 @@ function App() {
       });
 
       const data = await res.json();
+  
 
       if (!res.ok) throw new Error(data.error || "Failed to load user");
 
       const email = data.user?.email || "";
       const pro = !!data.user?.is_pro;
+      const admin = !!data.user?.is_admin;
+      
+
       const used = data.user?.ai_generations_used ?? 0;
       const limit = data.user?.ai_free_limit ?? 3;
       const uid = data.user?.id || "";
 
       setUserEmail(email);
       setIsPro(pro);
+      setIsAdmin(admin);
       setAiGenerationsUsed(used);
       setAiFreeLimit(limit);
       setUserId(uid);
 
       localStorage.setItem("userEmail", email);
       localStorage.setItem("isPro", JSON.stringify(pro));
+      localStorage.setItem("isAdmin", JSON.stringify(admin));
+      localStorage.setItem("userId", uid);
+
+      if (!admin && view === "admin") {
+        setView("manage");
+      }
     } catch (err) {
       console.error("loadMe error:", err.message);
     }
   }
+  
 
   // ---------- derived values that depend on cards/decks ----------
 
@@ -225,7 +241,7 @@ function App() {
     await loadCards();
   }
 
-  // ---------- quiz handlers (now can safely use studyCards/currentCard) ----------
+  // ---------- quiz handlers ----------
 
   function handleStudyDeckChange(newDeckId) {
     setSelectedDeckId(newDeckId);
@@ -317,7 +333,6 @@ function App() {
     setIsShuffled(false);
     setShuffledIndices([]);
 
-    // clear quiz UI so it doesn't show in flashcards
     setSelectedAnswer("");
     setQuizFeedback("");
     setQuizCompleted(false);
@@ -445,50 +460,49 @@ function App() {
       setBack("");
       await loadCards();
     } catch (err) {
-      setError(err.message); // will show the limit message inline
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   }
 
   async function handleUploadGenerate(file) {
-  if (!selectedDeckId) return;
+    if (!selectedDeckId) return;
 
-  setAiError("");
-  setAiLoading(true);
+    setAiError("");
+    setAiLoading(true);
 
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
-    const res = await fetch(`${API_URL}/ai/upload-and-generate`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        // don't set Content-Type — browser sets it automatically with boundary for FormData
-      },
-      body: formData,
-    });
+      const res = await fetch(`${API_URL}/ai/upload-and-generate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to generate cards");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to generate cards");
 
-    const newCards = Array.isArray(data.cards) ? data.cards : [];
-    setAiGeneratedCards(newCards.map((c) => ({ ...c, selected: true })));
+      const newCards = Array.isArray(data.cards) ? data.cards : [];
+      setAiGeneratedCards(newCards.map((c) => ({ ...c, selected: true })));
 
-    if (typeof data.ai_generations_used === "number") {
-      setAiGenerationsUsed(data.ai_generations_used);
+      if (typeof data.ai_generations_used === "number") {
+        setAiGenerationsUsed(data.ai_generations_used);
+      }
+      if (typeof data.ai_free_limit === "number") {
+        setAiFreeLimit(data.ai_free_limit);
+      }
+    } catch (err) {
+      setAiError(err.message);
+      setAiGeneratedCards([]);
+    } finally {
+      setAiLoading(false);
     }
-    if (typeof data.ai_free_limit === "number") {
-      setAiFreeLimit(data.ai_free_limit);
-    }
-  } catch (err) {
-    setAiError(err.message);
-    setAiGeneratedCards([]);
-  } finally {
-    setAiLoading(false);
   }
-}
 
   async function handleGenerateFromText(e) {
     e.preventDefault();
@@ -653,10 +667,12 @@ function App() {
     setToken("");
     setUserEmail("");
     setIsPro(false);
+    setIsAdmin(false);
     setUserId("");
     localStorage.removeItem("token");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("isPro");
+    localStorage.removeItem("isAdmin");
     localStorage.removeItem("userId");
     setCards([]);
     setView("manage");
@@ -736,114 +752,117 @@ function App() {
   return (
     <div className="app-root">
       {!token ? (
- <div className="landing-page">
-  <nav className="landing-nav">
-    <div className="landing-logo">Study My Cards</div>
-  </nav>
+        <div className="landing-page">
+          <nav className="landing-nav">
+            <div className="landing-logo">Study My Cards</div>
+          </nav>
 
-  <section className="landing-hero">
-    <div className="landing-copy">
-      <div className="landing-eyebrow">Built for college students</div>
-      <h1 className="landing-title">
-        Study smarter for your next exam
-      </h1>
-      <p className="landing-subtitle">
-        Create flashcard decks, quiz yourself, and let AI generate
-        cards and full tests from your notes — so you actually know
-        the material, not just recognize it.
-      </p>
+          <section className="landing-hero">
+            <div className="landing-copy">
+              <div className="landing-eyebrow">Built for college students</div>
+              <h1 className="landing-title">
+                Study smarter for your next exam
+              </h1>
+              <p className="landing-subtitle">
+                Create flashcard decks, quiz yourself, and let AI generate
+                cards and full tests from your notes — so you actually know
+                the material, not just recognize it.
+              </p>
 
-      <div className="landing-points">
-        <div>📚 Organize decks by class, unit, or exam</div>
-        <div>🃏 Flashcards with spaced repetition — mark Easy or Hard</div>
-        <div>📝 Quiz mode and AI-powered tests with multiple choice, true/false, and fill-in-the-blank</div>
-        <div>🤖 Generate cards from pasted notes or uploaded PDFs</div>
-        <div>🤝 Share decks with classmates</div>
-      </div>
-    </div>
+              <div className="landing-points">
+                <div>📚 Organize decks by class, unit, or exam</div>
+                <div>🃏 Flashcards with spaced repetition — mark Easy or Hard</div>
+                <div>
+                  📝 Quiz mode and AI-powered tests with multiple choice,
+                  true/false, and fill-in-the-blank
+                </div>
+                <div>🤖 Generate cards from pasted notes or uploaded PDFs</div>
+                <div>🤝 Share decks with classmates</div>
+              </div>
+            </div>
 
-    <div className="landing-auth">
-      <AuthForm
-        mode={mode}
-        setMode={setMode}
-        email={email}
-        setEmail={setEmail}
-        password={password}
-        setPassword={setPassword}
-        error={error}
-        loading={loading}
-        onSubmit={handleAuth}
-        onForgotPassword={handleForgotPassword}
-        forgotMessage={forgotMessage}
-      />
-    </div>
-  </section>
+            <div className="landing-auth">
+              <AuthForm
+                mode={mode}
+                setMode={setMode}
+                email={email}
+                setEmail={setEmail}
+                password={password}
+                setPassword={setPassword}
+                error={error}
+                loading={loading}
+                onSubmit={handleAuth}
+                onForgotPassword={handleForgotPassword}
+                forgotMessage={forgotMessage}
+              />
+            </div>
+          </section>
 
-  <section className="landing-features">
-    <div className="feature-card">
-      <h3>AI card generation</h3>
-      <p>
-        Paste your lecture notes or upload a PDF and AI instantly
-        creates flashcards from your material. Save hours of manual
-        card creation.
-      </p>
-    </div>
+          <section className="landing-features">
+            <div className="feature-card">
+              <h3>AI card generation</h3>
+              <p>
+                Paste your lecture notes or upload a PDF and AI instantly
+                creates flashcards from your material. Save hours of manual
+                card creation.
+              </p>
+            </div>
 
-    <div className="feature-card">
-      <h3>AI-powered tests</h3>
-      <p>
-        Generate a real test from your flashcards with multiple
-        choice, true/false, and fill-in-the-blank questions — auto
-        graded with a score history so you can track improvement.
-      </p>
-    </div>
+            <div className="feature-card">
+              <h3>AI-powered tests</h3>
+              <p>
+                Generate a real test from your flashcards with multiple
+                choice, true/false, and fill-in-the-blank questions — auto
+                graded with a score history so you can track improvement.
+              </p>
+            </div>
 
-    <div className="feature-card">
-      <h3>Spaced repetition</h3>
-      <p>
-        Mark cards as Easy or Hard as you study. Filter to hard
-        cards only and focus your time where it actually matters.
-      </p>
-    </div>
+            <div className="feature-card">
+              <h3>Spaced repetition</h3>
+              <p>
+                Mark cards as Easy or Hard as you study. Filter to hard
+                cards only and focus your time where it actually matters.
+              </p>
+            </div>
 
-    <div className="feature-card">
-      <h3>Share with classmates</h3>
-      <p>
-        Share any deck with a classmate by email. They can study
-        your cards, copy the deck to their account, or collaborate
-        on material together.
-      </p>
-    </div>
+            <div className="feature-card">
+              <h3>Share with classmates</h3>
+              <p>
+                Share any deck with a classmate by email. They can study
+                your cards, copy the deck to their account, or collaborate
+                on material together.
+              </p>
+            </div>
 
-    <div className="feature-card">
-      <h3>Quiz mode</h3>
-      <p>
-        Test yourself with multiple choice questions generated from
-        your own card answers — no manual question writing needed.
-      </p>
-    </div>
+            <div className="feature-card">
+              <h3>Quiz mode</h3>
+              <p>
+                Test yourself with multiple choice questions generated from
+                your own card answers — no manual question writing needed.
+              </p>
+            </div>
 
-    <div className="feature-card">
-      <h3>Organize by class</h3>
-      <p>
-        Create separate decks for each course or exam. Switch
-        between them instantly and study exactly what you need.
-      </p>
-    </div>
-  </section>
+            <div className="feature-card">
+              <h3>Organize by class</h3>
+              <p>
+                Create separate decks for each course or exam. Switch
+                between them instantly and study exactly what you need.
+              </p>
+            </div>
+          </section>
 
-  <section className="landing-pricing">
-    <h2>Start free</h2>
-    <p>
-      Free plan includes 3 decks, 100 cards, 3 AI card generations,
-      and 3 AI tests. Upgrade to Pro for unlimited everything.
-    </p>
-  </section>
+          <section className="landing-pricing">
+            <h2>Start free</h2>
+            <p>
+              Free plan includes 3 decks, 100 cards, 3 AI card generations,
+              and 3 AI tests. Upgrade to Pro for unlimited everything.
+            </p>
+          </section>
 
-  <footer className="landing-footer">
-    <p>Made for focused exam prep.</p>
-  </footer>
-</div>
+          <footer className="landing-footer">
+            <p>Made for focused exam prep.</p>
+          </footer>
+        </div>
       ) : (
         <>
           <HeaderBar
@@ -866,6 +885,7 @@ function App() {
             >
               Manage cards
             </button>
+
             <button
               type="button"
               className={
@@ -879,6 +899,19 @@ function App() {
             >
               Study mode
             </button>
+
+            {isAdmin && (
+              <button
+                type="button"
+                className={
+                  "btn btn-small " +
+                  (view === "admin" ? "btn-primary" : "btn-gray")
+                }
+                onClick={() => setView("admin")}
+              >
+                Admin
+              </button>
+            )}
           </div>
 
           {view === "manage" && (
@@ -894,7 +927,7 @@ function App() {
                   });
                   await loadDecks();
                 } catch (err) {
-                  setError(err.message); // will show the limit message inline
+                  setError(err.message);
                 }
               }}
               cards={cards}
@@ -934,6 +967,14 @@ function App() {
               onLeaveDeck={handleLeaveDeck}
               onCopyDeck={handleCopyDeck}
               onUploadGenerate={handleUploadGenerate}
+            />
+          )}
+
+          {view === "admin" && isAdmin && (
+            <AdminPage
+              token={token}
+              API_URL={API_URL}
+              onBack={() => setView("manage")}
             />
           )}
 
@@ -977,6 +1018,7 @@ function App() {
               currentUserId={userId}
             />
           )}
+
           {shareDeck && (
             <ShareDeckModal
               deck={shareDeck}

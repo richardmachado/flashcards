@@ -1,9 +1,11 @@
 const express = require("express");
 const { supabase, supabaseAdmin } = require("../config/supabase");
 const { ensureProfile } = require("../services/profileService");
+const getRequestUser = require("../middleware/getRequestUser");
 const env = require("../config/env");
 
 const router = express.Router();
+
 
 router.post("/signup", async (req, res) => {
   const { email, password } = req.body;
@@ -106,6 +108,46 @@ router.post("/forgot-password", async (req, res) => {
     });
   } catch (err) {
     return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/admin/users", async (req, res) => {
+  try {
+    const { user } = await getRequestUser(req);
+
+    const { data: adminProfile, error: adminProfileError } = await supabaseAdmin
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (adminProfileError) throw adminProfileError;
+
+    if (!adminProfile?.is_admin) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("profiles")
+      .select("id, email, created_at, is_pro, is_admin")
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    if (error) throw error;
+
+    const now = Date.now();
+    const last24h = (data || []).filter((u) => {
+      if (!u.created_at) return false;
+      return now - new Date(u.created_at).getTime() <= 24 * 60 * 60 * 1000;
+    }).length;
+
+    res.json({
+      total: data?.length || 0,
+      last24h,
+      users: data || [],
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message || "Failed to load users" });
   }
 });
 
