@@ -9,9 +9,23 @@ import AdminPage from "./AdminPage";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:4000";
 
+function isTokenExpired(jwt) {
+  try {
+    const payload = JSON.parse(atob(jwt.split(".")[1]));
+    return !payload.exp || payload.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+}
+
 function App() {
   // Auth / user
-  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const savedToken = localStorage.getItem("token") || "";
+
+  const [token, setToken] = useState(
+    savedToken && !isTokenExpired(savedToken) ? savedToken : ""
+  );
+
   const [userEmail, setUserEmail] = useState(
     localStorage.getItem("userEmail") || ""
   );
@@ -158,57 +172,65 @@ function App() {
     });
 
     const data = await res.json().catch(() => ({}));
+
+    if (res.status === 401) {
+      handleLogout();
+      throw new Error("Session expired. Please log in again.");
+    }
+
     if (!res.ok) {
       throw new Error(data.error || "Request failed");
     }
+
     return data;
   }
 
-  async function loadMe(authToken = token) {
-    if (!authToken) return;
+async function loadMe(authToken = token) {
+  if (!authToken) return;
 
-    try {
-      const res = await fetch(`${API_URL}/me`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
+  try {
+    const res = await fetch(`${API_URL}/me`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
 
-      const data = await res.json();
-  
+    const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) throw new Error(data.error || "Failed to load user");
-
-      const email = data.user?.email || "";
-      const pro = !!data.user?.is_pro;
-      const admin = !!data.user?.is_admin;
-      
-
-      const used = data.user?.ai_generations_used ?? 0;
-      const limit = data.user?.ai_free_limit ?? 3;
-      const uid = data.user?.id || "";
-
-      setUserEmail(email);
-      setIsPro(pro);
-      setIsAdmin(admin);
-      setAiGenerationsUsed(used);
-      setAiFreeLimit(limit);
-      setUserId(uid);
-
-      localStorage.setItem("userEmail", email);
-      localStorage.setItem("isPro", JSON.stringify(pro));
-      localStorage.setItem("isAdmin", JSON.stringify(admin));
-      localStorage.setItem("userId", uid);
-
-      if (!admin && view === "admin") {
-        setView("manage");
-      }
-    } catch (err) {
-      console.error("loadMe error:", err.message);
+    if (res.status === 401) {
+      handleLogout();
+      return;
     }
+
+    if (!res.ok) throw new Error(data.error || "Failed to load user");
+
+    const email = data.user?.email || "";
+    const pro = !!data.user?.is_pro;
+    const admin = !!data.user?.is_admin;
+    const used = data.user?.ai_generations_used ?? 0;
+    const limit = data.user?.ai_free_limit ?? 3;
+    const uid = data.user?.id || "";
+
+    setUserEmail(email);
+    setIsPro(pro);
+    setIsAdmin(admin);
+    setAiGenerationsUsed(used);
+    setAiFreeLimit(limit);
+    setUserId(uid);
+
+    localStorage.setItem("userEmail", email);
+    localStorage.setItem("isPro", JSON.stringify(pro));
+    localStorage.setItem("isAdmin", JSON.stringify(admin));
+    localStorage.setItem("userId", uid);
+
+    if (!admin && view === "admin") {
+      setView("manage");
+    }
+  } catch (err) {
+    console.error("loadMe error:", err.message);
   }
-  
+}
 
   // ---------- derived values that depend on cards/decks ----------
 
@@ -669,13 +691,20 @@ function App() {
     setIsPro(false);
     setIsAdmin(false);
     setUserId("");
+    setCards([]);
+    setDecks([]);
+    setSelectedDeckId("");
+    setView("manage");
+    setError("");
+    setAiError("");
+    setAiGeneratedCards([]);
+    setForgotMessage("");
+
     localStorage.removeItem("token");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("isPro");
     localStorage.removeItem("isAdmin");
     localStorage.removeItem("userId");
-    setCards([]);
-    setView("manage");
   }
 
   // ---------- effects ----------
@@ -693,6 +722,13 @@ function App() {
     setShowBack(false);
     setTransitionDir("none");
   }, [studyCards.length, selectedDeckId]);
+
+  useEffect(() => {
+  const saved = localStorage.getItem("token");
+  if (saved && isTokenExpired(saved)) {
+    handleLogout();
+  }
+}, []);
 
   // ---------- render ----------
 
@@ -764,14 +800,16 @@ function App() {
                 Study smarter for your next exam
               </h1>
               <p className="landing-subtitle">
-                Create flashcard decks, quiz yourself, and let AI generate
-                cards and full tests from your notes — so you actually know
-                the material, not just recognize it.
+                Create flashcard decks, quiz yourself, and let AI generate cards
+                and full tests from your notes — so you actually know the
+                material, not just recognize it.
               </p>
 
               <div className="landing-points">
                 <div>📚 Organize decks by class, unit, or exam</div>
-                <div>🃏 Flashcards with spaced repetition — mark Easy or Hard</div>
+                <div>
+                  🃏 Flashcards with spaced repetition — mark Easy or Hard
+                </div>
                 <div>
                   📝 Quiz mode and AI-powered tests with multiple choice,
                   true/false, and fill-in-the-blank
@@ -803,50 +841,50 @@ function App() {
               <h3>AI card generation</h3>
               <p>
                 Paste your lecture notes or upload a PDF and AI instantly
-                creates flashcards from your material. Save hours of manual
-                card creation.
+                creates flashcards from your material. Save hours of manual card
+                creation.
               </p>
             </div>
 
             <div className="feature-card">
               <h3>AI-powered tests</h3>
               <p>
-                Generate a real test from your flashcards with multiple
-                choice, true/false, and fill-in-the-blank questions — auto
-                graded with a score history so you can track improvement.
+                Generate a real test from your flashcards with multiple choice,
+                true/false, and fill-in-the-blank questions — auto graded with a
+                score history so you can track improvement.
               </p>
             </div>
 
             <div className="feature-card">
               <h3>Spaced repetition</h3>
               <p>
-                Mark cards as Easy or Hard as you study. Filter to hard
-                cards only and focus your time where it actually matters.
+                Mark cards as Easy or Hard as you study. Filter to hard cards
+                only and focus your time where it actually matters.
               </p>
             </div>
 
             <div className="feature-card">
               <h3>Share with classmates</h3>
               <p>
-                Share any deck with a classmate by email. They can study
-                your cards, copy the deck to their account, or collaborate
-                on material together.
+                Share any deck with a classmate by email. They can study your
+                cards, copy the deck to their account, or collaborate on
+                material together.
               </p>
             </div>
 
             <div className="feature-card">
               <h3>Quiz mode</h3>
               <p>
-                Test yourself with multiple choice questions generated from
-                your own card answers — no manual question writing needed.
+                Test yourself with multiple choice questions generated from your
+                own card answers — no manual question writing needed.
               </p>
             </div>
 
             <div className="feature-card">
               <h3>Organize by class</h3>
               <p>
-                Create separate decks for each course or exam. Switch
-                between them instantly and study exactly what you need.
+                Create separate decks for each course or exam. Switch between
+                them instantly and study exactly what you need.
               </p>
             </div>
           </section>
@@ -854,8 +892,8 @@ function App() {
           <section className="landing-pricing">
             <h2>Start free</h2>
             <p>
-              Free plan includes 3 decks, 100 cards, 3 AI card generations,
-              and 3 AI tests. Upgrade to Pro for unlimited everything.
+              Free plan includes 3 decks, 100 cards, 3 AI card generations, and
+              3 AI tests. Upgrade to Pro for unlimited everything.
             </p>
           </section>
 
