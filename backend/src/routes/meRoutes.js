@@ -18,7 +18,6 @@ router.get("/me", async (req, res) => {
       .select("id, email, is_pro, is_admin, ai_generations_used, ai_free_limit")
       .eq("id", user.id)
       .maybeSingle();
-      console.log("profile row:", profile);
 
     if (profileError) throw profileError;
 

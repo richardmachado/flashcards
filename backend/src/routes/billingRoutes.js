@@ -53,6 +53,10 @@ router.post("/create-checkout-session", requireUser, async (req, res) => {
       mode: "subscription",
       payment_method_types: ["card"],
       customer_email: user.email,
+      allow_promotion_codes: true,
+      subscription_data: {
+        trial_period_days: 30,
+      },
       line_items: [
         {
           price: env.stripePriceId,
